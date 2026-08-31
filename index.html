@@ -39,7 +39,7 @@
       color: var(--accent);
     }
 
-    nav .nav-tabs {
+    .nav-tabs {
       display: flex;
       gap: 10px;
     }
@@ -51,7 +51,6 @@
       padding: 8px 16px;
       border-radius: 6px;
       cursor: pointer;
-      transition: background 0.2s;
     }
 
     .tab-btn.active {
@@ -76,24 +75,13 @@
     }
 
     @media (min-width: 768px) {
-      #publicView {
-        grid-template-columns: 2fr 1fr;
-      }
+      #publicView { grid-template-columns: 2fr 1fr; }
     }
 
     .media-card {
       background-color: var(--card-bg);
       border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    }
-
-    .media-card h2 {
-      margin-top: 0;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      gap: 10px;
     }
 
     video, audio {
@@ -109,28 +97,14 @@
       border-radius: 12px;
     }
 
-    #adminView {
-      grid-template-columns: 1fr;
-      gap: 20px;
-    }
+    #adminView { grid-template-columns: 1fr; gap: 20px; }
 
     @media (min-width: 768px) {
-      #adminView.authenticated {
-        grid-template-columns: 1fr 1fr;
-      }
+      #adminView.authenticated { grid-template-columns: 1fr 1fr; }
     }
 
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-size: 0.9em;
-      color: var(--text-dim);
-    }
-
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; color: var(--text-dim); }
     .form-group input, .form-group select {
       width: 100%;
       padding: 10px;
@@ -150,36 +124,6 @@
       border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .btn-submit:hover {
-      background-color: var(--accent-hover);
-    }
-
-    .progress-container {
-      margin-top: 15px;
-      display: none;
-    }
-
-    .progress-bar-bg {
-      background-color: #2a2a2a;
-      border-radius: 6px;
-      height: 12px;
-      overflow: hidden;
-    }
-
-    .progress-bar-fill {
-      background-color: var(--accent);
-      height: 100%;
-      width: 0%;
-      transition: width 0.2s;
-    }
-
-    .file-list {
-      margin-top: 15px;
-      max-height: 250px;
-      overflow-y: auto;
     }
 
     .file-item {
@@ -191,48 +135,22 @@
       word-break: break-all;
     }
 
-    .auth-card {
-      max-width: 400px;
-      margin: 40px auto;
-      width: 100%;
-    }
-
-    .admin-panel-content {
-      display: none;
-      width: 100%;
-      gap: 20px;
-    }
+    .auth-card { max-width: 400px; margin: 40px auto; width: 100%; }
+    .admin-panel-content { display: none; width: 100%; gap: 20px; }
   </style>
 
-  <!-- Firebase SDK Modular -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getStorage, ref, uploadBytesResumable, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-    // Credenciales para Coatetv
-    const firebaseConfig = {
-      apiKey: "AIzaSyA3nOaIIhSDcrc0L5F51HqHv8nr4g9DbMY",
-      authDomain: "coatetv-c3522.firebaseapp.com",
-      projectId: "coatetv-c3522",
-      storageBucket: "coatetv-c3522.firebasestorage.app",
-      messagingSenderId: "302775825265",
-      appId: "1:302775825265:web:a9243bb56ee0a408e23cd0",
-      measurementId: "G-0GJ31YSDRD"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const storage = getStorage(app);
+    const SUPABASE_URL = 'https://zvpgpqykgbrkcphhnhvx.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_5tq4snjI8q4AfrbBYgzrVw_UfoZw9vA';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let tvPlaylist = [];
     let radioPlaylist = [];
     let currentVideoIndex = 0;
     let currentRadioIndex = 0;
     let isAdminAuthenticated = false;
-
-    const tvPlayer = document.getElementById('tvPlayer');
-    const radioPlayer = document.getElementById('radioPlayer');
-    const currentVideoTitle = document.getElementById('currentVideoTitle');
-    const currentRadioTitle = document.getElementById('currentRadioTitle');
 
     window.switchTab = function(tabName) {
       document.querySelectorAll('.view-content').forEach(el => el.classList.remove('active'));
@@ -244,174 +162,107 @@
       } else {
         document.getElementById('adminView').classList.add('active');
         document.getElementById('tabAdmin').classList.add('active');
-        if (isAdminAuthenticated) {
-          loadStorageFiles();
-        }
+        if (isAdminAuthenticated) loadStorageFiles();
       }
     };
 
-    // CANAL DE TV (Reproducción continua)
     async function fetchTvPlaylist() {
-      try {
-        const videosRef = ref(storage, 'videos/');
-        const res = await listAll(videosRef);
-        tvPlaylist = [];
-        for (const itemRef of res.items) {
-          const url = await getDownloadURL(itemRef);
-          tvPlaylist.push({ name: itemRef.name, url: url });
-        }
-
-        if (tvPlaylist.length > 0) {
-          playVideo(0);
-        } else {
-          currentVideoTitle.textContent = "Sin videos subidos en el servidor";
-        }
-      } catch (error) {
-        console.error("Error al cargar videos:", error);
+      const { data, error } = await supabase.storage.from('videos').list();
+      if (data && data.length > 0) {
+        tvPlaylist = data.map(item => ({
+          name: item.name,
+          url: supabase.storage.from('videos').getPublicUrl(item.name).data.publicUrl
+        }));
+        playVideo(0);
+      } else {
+        document.getElementById('currentVideoTitle').textContent = 'No hay videos disponibles';
       }
     }
 
     function playVideo(index) {
       if (tvPlaylist.length === 0) return;
       currentVideoIndex = index % tvPlaylist.length;
-      const currentItem = tvPlaylist[currentVideoIndex];
-
-      currentVideoTitle.textContent = currentItem.name;
-      tvPlayer.src = currentItem.url;
-      tvPlayer.play().catch(() => {});
+      document.getElementById('currentVideoTitle').textContent = tvPlaylist[currentVideoIndex].name;
+      const player = document.getElementById('tvPlayer');
+      player.src = tvPlaylist[currentVideoIndex].url;
+      player.play().catch(() => {});
     }
 
-    tvPlayer.addEventListener('ended', () => playVideo(currentVideoIndex + 1));
-    tvPlayer.addEventListener('error', () => setTimeout(() => playVideo(currentVideoIndex + 1), 2000));
-
-    // RADIO ONLINE (Reproducción continua)
     async function fetchRadioPlaylist() {
-      try {
-        const audioRef = ref(storage, 'audio/');
-        const res = await listAll(audioRef);
-        radioPlaylist = [];
-        for (const itemRef of res.items) {
-          const url = await getDownloadURL(itemRef);
-          radioPlaylist.push({ name: itemRef.name, url: url });
-        }
-
-        if (radioPlaylist.length > 0) {
-          playRadioTrack(0);
-        } else {
-          currentRadioTitle.textContent = "Sin audios subidos en el servidor";
-        }
-      } catch (error) {
-        console.error("Error al cargar radio:", error);
+      const { data, error } = await supabase.storage.from('audio').list();
+      if (data && data.length > 0) {
+        radioPlaylist = data.map(item => ({
+          name: item.name,
+          url: supabase.storage.from('audio').getPublicUrl(item.name).data.publicUrl
+        }));
+        playRadioTrack(0);
+      } else {
+        document.getElementById('currentRadioTitle').textContent = 'No hay audios disponibles';
       }
     }
 
     function playRadioTrack(index) {
       if (radioPlaylist.length === 0) return;
       currentRadioIndex = index % radioPlaylist.length;
-      const currentTrack = radioPlaylist[currentRadioIndex];
-
-      currentRadioTitle.textContent = currentTrack.name;
-      radioPlayer.src = currentTrack.url;
-      radioPlayer.play().catch(() => {});
-    }
-
-    radioPlayer.addEventListener('ended', () => playRadioTrack(currentRadioIndex + 1));
-    radioPlayer.addEventListener('error', () => setTimeout(() => playRadioTrack(currentRadioIndex + 1), 2000));
-
-    // LOGIN DE ADMINISTRACIÓN
-    const authForm = document.getElementById('authForm');
-    const authError = document.getElementById('authError');
-    const authContainer = document.getElementById('authContainer');
-    const adminPanelContent = document.getElementById('adminPanelContent');
-
-    authForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const user = document.getElementById('authUser').value;
-      const pass = document.getElementById('authPass').value;
-
-      if (user === 'admin' && pass === 'coatetv') {
-        isAdminAuthenticated = true;
-        authContainer.style.display = 'none';
-        adminPanelContent.style.display = 'grid';
-        document.getElementById('adminView').classList.add('authenticated');
-        authError.textContent = '';
-        loadStorageFiles();
-      } else {
-        authError.textContent = 'Usuario o contraseña incorrectos.';
-      }
-    });
-
-    // PROCESO DE SUBIDA (UPLOAD)
-    const uploadForm = document.getElementById('uploadForm');
-    const progressBarFill = document.getElementById('progressBarFill');
-    const progressContainer = document.getElementById('progressContainer');
-    const statusMessage = document.getElementById('statusMessage');
-
-    uploadForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const fileInput = document.getElementById('mediaFile');
-      const mediaType = document.getElementById('mediaType').value;
-      const file = fileInput.files[0];
-
-      if (!file) return;
-
-      const folder = mediaType === 'video' ? 'videos/' : 'audio/';
-      const storageRef = ref(storage, folder + file.name);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      progressContainer.style.display = 'block';
-      statusMessage.textContent = 'Iniciando subida...';
-
-      uploadTask.on('state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          progressBarFill.style.width = progress + '%';
-          statusMessage.textContent = `Subiendo: ${Math.round(progress)}%`;
-        },
-        (error) => {
-          console.error("Error al subir:", error);
-          statusMessage.textContent = 'Error: verifica haber publicado las Reglas de Storage.';
-        },
-        async () => {
-          statusMessage.textContent = '¡Subida realizada con éxito!';
-          uploadForm.reset();
-          loadStorageFiles();
-          
-          if (mediaType === 'video') await fetchTvPlaylist();
-          else await fetchRadioPlaylist();
-
-          setTimeout(() => {
-            progressContainer.style.display = 'none';
-            progressBarFill.style.width = '0%';
-            statusMessage.textContent = '';
-          }, 3000);
-        }
-      );
-    });
-
-    async function loadStorageFiles() {
-      const adminVideoList = document.getElementById('adminVideoList');
-      const adminAudioList = document.getElementById('adminAudioList');
-      adminVideoList.innerHTML = '';
-      adminAudioList.innerHTML = '';
-
-      try {
-        const vRes = await listAll(ref(storage, 'videos/'));
-        vRes.items.forEach(item => adminVideoList.innerHTML += `<div class="file-item">📹 ${item.name}</div>`);
-        if (vRes.items.length === 0) adminVideoList.innerHTML = '<small style="color:#aaa;">Sin videos.</small>';
-
-        const aRes = await listAll(ref(storage, 'audio/'));
-        aRes.items.forEach(item => adminAudioList.innerHTML += `<div class="file-item">📻 ${item.name}</div>`);
-        if (aRes.items.length === 0) adminAudioList.innerHTML = '<small style="color:#aaa;">Sin audios.</small>';
-      } catch (e) {
-        console.error("Error listando archivos:", e);
-      }
+      document.getElementById('currentRadioTitle').textContent = radioPlaylist[currentRadioIndex].name;
+      const player = document.getElementById('radioPlayer');
+      player.src = radioPlaylist[currentRadioIndex].url;
+      player.play().catch(() => {});
     }
 
     window.addEventListener('DOMContentLoaded', () => {
       fetchTvPlaylist();
       fetchRadioPlaylist();
+
+      document.getElementById('tvPlayer').addEventListener('ended', () => playVideo(currentVideoIndex + 1));
+      document.getElementById('radioPlayer').addEventListener('ended', () => playRadioTrack(currentRadioIndex + 1));
+
+      document.getElementById('authForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (document.getElementById('authUser').value === 'admin' && document.getElementById('authPass').value === 'coatetv') {
+          isAdminAuthenticated = true;
+          document.getElementById('authContainer').style.display = 'none';
+          document.getElementById('adminPanelContent').style.display = 'grid';
+          document.getElementById('adminView').classList.add('authenticated');
+          loadStorageFiles();
+        } else {
+          alert('Usuario o contraseña incorrectos');
+        }
+      });
+
+      document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = document.getElementById('mediaFile').files[0];
+        const type = document.getElementById('mediaType').value;
+        const bucket = type === 'video' ? 'videos' : 'audio';
+
+        const status = document.getElementById('statusMessage');
+        status.textContent = 'Subiendo archivo...';
+
+        const { data, error } = await supabase.storage.from(bucket).upload(file.name, file, { upsert: true });
+
+        if (error) {
+          status.textContent = 'Error: ' + error.message;
+        } else {
+          status.textContent = '¡Subida exitosa!';
+          document.getElementById('mediaFile').value = '';
+          loadStorageFiles();
+          if (type === 'video') fetchTvPlaylist();
+          else fetchRadioPlaylist();
+        }
+      });
     });
+
+    async function loadStorageFiles() {
+      const vRes = await supabase.storage.from('videos').list();
+      const aRes = await supabase.storage.from('audio').list();
+
+      const vList = document.getElementById('adminVideoList');
+      const aList = document.getElementById('adminAudioList');
+
+      vList.innerHTML = vRes.data && vRes.data.length > 0 ? vRes.data.map(i => `<div class="file-item">📹 ${i.name}</div>`).join('') : '<p style="color:var(--text-dim)">Sin videos en el bucket</p>';
+      aList.innerHTML = aRes.data && aRes.data.length > 0 ? aRes.data.map(i => `<div class="file-item">📻 ${i.name}</div>`).join('') : '<p style="color:var(--text-dim)">Sin audios en el bucket</p>';
+    }
   </script>
 </head>
 <body>
@@ -427,21 +278,14 @@
   <main id="publicView" class="view-content active">
     <section class="media-card">
       <h2><span class="status-badge">EN VIVO</span> Canal de TV Continuo</h2>
-      <video id="tvPlayer" controls autoplay muted poster="https://via.placeholder.com/800x450?text=Iniciando+CoateTV"></video>
-      <div style="margin-top: 10px;">
-        <small style="color: var(--text-dim);">Transmitiendo ahora:</small>
-        <h3 id="currentVideoTitle" style="margin: 5px 0;">Cargando programación...</h3>
-      </div>
+      <video id="tvPlayer" controls autoplay muted></video>
+      <h3 id="currentVideoTitle">Cargando...</h3>
     </section>
 
     <section class="media-card">
-      <h2><span class="status-badge" style="background:var(--success);">AL AIRE</span> Emisora de Radio Online</h2>
-      <p style="color: var(--text-dim); font-size: 0.9em;">Reproducción continua 24/7.</p>
-      <audio id="radioPlayer" controls style="margin-top:15px;"></audio>
-      <div style="margin-top: 10px;">
-        <small style="color: var(--text-dim);">Pista actual:</small>
-        <h3 id="currentRadioTitle" style="margin: 5px 0;">Cargando señal...</h3>
-      </div>
+      <h2><span class="status-badge" style="background:var(--success);">AL AIRE</span> Emisora de Radio</h2>
+      <audio id="radioPlayer" controls></audio>
+      <h3 id="currentRadioTitle">Cargando...</h3>
     </section>
   </main>
 
@@ -449,16 +293,9 @@
     <div id="authContainer" class="media-card auth-card">
       <h2>Acceso Administrativo</h2>
       <form id="authForm">
-        <div class="form-group">
-          <label for="authUser">Usuario</label>
-          <input type="text" id="authUser" placeholder="Ingresa usuario" required />
-        </div>
-        <div class="form-group">
-          <label for="authPass">Contraseña</label>
-          <input type="password" id="authPass" placeholder="Ingresa contraseña" required />
-        </div>
-        <button type="submit" class="btn-submit">Ingresar al Panel</button>
-        <p id="authError" style="color: var(--accent); font-size: 0.9em; margin-top: 10px; text-align: center;"></p>
+        <div class="form-group"><label>Usuario</label><input type="text" id="authUser" required /></div>
+        <div class="form-group"><label>Contraseña</label><input type="password" id="authPass" required /></div>
+        <button type="submit" class="btn-submit">Ingresar</button>
       </form>
     </div>
 
@@ -467,33 +304,26 @@
         <h2>Cargar Nuevo Contenido</h2>
         <form id="uploadForm">
           <div class="form-group">
-            <label for="mediaType">Tipo de Medio</label>
-            <select id="mediaType" required>
-              <option value="video">Video (Canal TV - .mp4)</option>
-              <option value="audio">Audio (Radio - .mp3, .wav)</option>
+            <label>Tipo de Medio</label>
+            <select id="mediaType">
+              <option value="video">Video (.mp4)</option>
+              <option value="audio">Audio (.mp3)</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="mediaFile">Seleccionar Archivo</label>
-            <input type="file" id="mediaFile" accept="video/mp4,audio/mp3,audio/wav" required />
+            <input type="file" id="mediaFile" required />
           </div>
-          <button type="submit" class="btn-submit">Subir a Firebase Storage</button>
+          <button type="submit" class="btn-submit">Subir Archivo</button>
         </form>
-
-        <div id="progressContainer" class="progress-container">
-          <div class="progress-bar-bg">
-            <div id="progressBarFill" class="progress-bar-fill"></div>
-          </div>
-          <small id="statusMessage" style="display:block; margin-top:5px; text-align:center; color: var(--text-dim);"></small>
-        </div>
+        <p id="statusMessage" style="margin-top: 10px; color: var(--text-dim);"></p>
       </section>
 
       <section class="media-card">
         <h2>Archivos Almacenados</h2>
-        <h3>Programación de TV (`videos/`)</h3>
-        <div id="adminVideoList" class="file-list"></div>
-        <h3 style="margin-top: 20px;">Programación de Radio (`audio/`)</h3>
-        <div id="adminAudioList" class="file-list"></div>
+        <h3>Videos</h3>
+        <div id="adminVideoList"></div>
+        <h3>Audios</h3>
+        <div id="adminAudioList"></div>
       </section>
     </div>
   </main>
