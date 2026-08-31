@@ -84,10 +84,31 @@
       padding: 20px;
     }
 
-    video, audio {
+    /* Contenedor del video en alta definición HD (16:9) */
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%; /* Relación de aspecto 16:9 HD */
+      background-color: #000;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .video-container video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* Mantiene la proporción del video en HD */
+      border-radius: 8px;
+    }
+
+    audio {
       width: 100%;
       border-radius: 8px;
       background-color: #000;
+      margin-top: 10px;
     }
 
     .status-badge {
@@ -174,15 +195,12 @@
           url: supabase.storage.from('videos').getPublicUrl(item.name).data.publicUrl
         }));
         playVideo(0);
-      } else {
-        document.getElementById('currentVideoTitle').textContent = 'No hay videos disponibles';
       }
     }
 
     function playVideo(index) {
       if (tvPlaylist.length === 0) return;
       currentVideoIndex = index % tvPlaylist.length;
-      document.getElementById('currentVideoTitle').textContent = tvPlaylist[currentVideoIndex].name;
       const player = document.getElementById('tvPlayer');
       player.src = tvPlaylist[currentVideoIndex].url;
       player.play().catch(() => {});
@@ -196,15 +214,12 @@
           url: supabase.storage.from('audio').getPublicUrl(item.name).data.publicUrl
         }));
         playRadioTrack(0);
-      } else {
-        document.getElementById('currentRadioTitle').textContent = 'No hay audios disponibles';
       }
     }
 
     function playRadioTrack(index) {
       if (radioPlaylist.length === 0) return;
       currentRadioIndex = index % radioPlaylist.length;
-      document.getElementById('currentRadioTitle').textContent = radioPlaylist[currentRadioIndex].name;
       const player = document.getElementById('radioPlayer');
       player.src = radioPlaylist[currentRadioIndex].url;
       player.play().catch(() => {});
@@ -277,15 +292,15 @@
 
   <main id="publicView" class="view-content active">
     <section class="media-card">
-      <h2><span class="status-badge">EN VIVO</span> Canal de TV Continuo</h2>
-      <video id="tvPlayer" controls autoplay muted></video>
-      <h3 id="currentVideoTitle">Cargando...</h3>
+      <h2><span class="status-badge">EN VIVO</span> Coate TV</h2>
+      <div class="video-container">
+        <video id="tvPlayer" controls autoplay muted></video>
+      </div>
     </section>
 
     <section class="media-card">
       <h2><span class="status-badge" style="background:var(--success);">AL AIRE</span> Emisora de Radio</h2>
       <audio id="radioPlayer" controls></audio>
-      <h3 id="currentRadioTitle">Cargando...</h3>
     </section>
   </main>
 
