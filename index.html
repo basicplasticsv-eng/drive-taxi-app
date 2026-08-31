@@ -1,674 +1,502 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Integrado de Monitoreo Territorial - ASAPROSAR</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .tab-btn.active { border-bottom-color: #0284c7; color: #0284c7; font-weight: 700; background-color: #f8fafc; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoateTV & Radio Digital</title>
+  <style>
+    :root {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --accent: #ff4757;
+      --accent-hover: #ff6b81;
+      --text: #ffffff;
+      --text-dim: #aaa;
+      --border: #333;
+      --success: #2ed573;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+    }
+
+    nav {
+      background-color: #0a0a0a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav .logo {
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: var(--accent);
+    }
+
+    nav .nav-tabs {
+      display: flex;
+      gap: 10px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .tab-btn.active {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .view-content {
+      display: none;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .view-content.active {
+      display: grid;
+    }
+
+    #publicView {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 768px) {
+      #publicView {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+
+    .media-card {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    .media-card h2 {
+      margin-top: 0;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    video, audio {
+      width: 100%;
+      border-radius: 8px;
+      background-color: #000;
+    }
+
+    .status-badge {
+      font-size: 0.8em;
+      background: var(--accent);
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+
+    #adminView {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 768px) {
+      #adminView.authenticated {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.9em;
+      color: var(--text-dim);
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background-color: #2a2a2a;
+      color: var(--text);
+      box-sizing: border-box;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      background-color: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-submit:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .progress-container {
+      margin-top: 15px;
+      display: none;
+    }
+
+    .progress-bar-bg {
+      background-color: #2a2a2a;
+      border-radius: 6px;
+      height: 12px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      background-color: var(--accent);
+      height: 100%;
+      width: 0%;
+      transition: width 0.2s;
+    }
+
+    .file-list {
+      margin-top: 15px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .file-item {
+      padding: 10px;
+      background: #2a2a2a;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 0.85em;
+      word-break: break-all;
+    }
+
+    .auth-card {
+      max-width: 400px;
+      margin: 40px auto;
+      width: 100%;
+    }
+
+    .admin-panel-content {
+      display: none;
+      width: 100%;
+      gap: 20px;
+    }
+  </style>
+
+  <!-- Firebase SDK Modular -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getStorage, ref, uploadBytesResumable, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+    // Credenciales para Coatetv
+    const firebaseConfig = {
+      apiKey: "AIzaSyA3nOaIIhSDcrc0L5F51HqHv8nr4g9DbMY",
+      authDomain: "coatetv-c3522.firebaseapp.com",
+      projectId: "coatetv-c3522",
+      storageBucket: "coatetv-c3522.firebasestorage.app",
+      messagingSenderId: "302775825265",
+      appId: "1:302775825265:web:a9243bb56ee0a408e23cd0",
+      measurementId: "G-0GJ31YSDRD"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
+
+    let tvPlaylist = [];
+    let radioPlaylist = [];
+    let currentVideoIndex = 0;
+    let currentRadioIndex = 0;
+    let isAdminAuthenticated = false;
+
+    const tvPlayer = document.getElementById('tvPlayer');
+    const radioPlayer = document.getElementById('radioPlayer');
+    const currentVideoTitle = document.getElementById('currentVideoTitle');
+    const currentRadioTitle = document.getElementById('currentRadioTitle');
+
+    window.switchTab = function(tabName) {
+      document.querySelectorAll('.view-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+      if(tabName === 'public') {
+        document.getElementById('publicView').classList.add('active');
+        document.getElementById('tabPublic').classList.add('active');
+      } else {
+        document.getElementById('adminView').classList.add('active');
+        document.getElementById('tabAdmin').classList.add('active');
+        if (isAdminAuthenticated) {
+          loadStorageFiles();
+        }
+      }
+    };
+
+    // CANAL DE TV (Reproducción continua)
+    async function fetchTvPlaylist() {
+      try {
+        const videosRef = ref(storage, 'videos/');
+        const res = await listAll(videosRef);
+        tvPlaylist = [];
+        for (const itemRef of res.items) {
+          const url = await getDownloadURL(itemRef);
+          tvPlaylist.push({ name: itemRef.name, url: url });
+        }
+
+        if (tvPlaylist.length > 0) {
+          playVideo(0);
+        } else {
+          currentVideoTitle.textContent = "Sin videos subidos en el servidor";
+        }
+      } catch (error) {
+        console.error("Error al cargar videos:", error);
+      }
+    }
+
+    function playVideo(index) {
+      if (tvPlaylist.length === 0) return;
+      currentVideoIndex = index % tvPlaylist.length;
+      const currentItem = tvPlaylist[currentVideoIndex];
+
+      currentVideoTitle.textContent = currentItem.name;
+      tvPlayer.src = currentItem.url;
+      tvPlayer.play().catch(() => {});
+    }
+
+    tvPlayer.addEventListener('ended', () => playVideo(currentVideoIndex + 1));
+    tvPlayer.addEventListener('error', () => setTimeout(() => playVideo(currentVideoIndex + 1), 2000));
+
+    // RADIO ONLINE (Reproducción continua)
+    async function fetchRadioPlaylist() {
+      try {
+        const audioRef = ref(storage, 'audio/');
+        const res = await listAll(audioRef);
+        radioPlaylist = [];
+        for (const itemRef of res.items) {
+          const url = await getDownloadURL(itemRef);
+          radioPlaylist.push({ name: itemRef.name, url: url });
+        }
+
+        if (radioPlaylist.length > 0) {
+          playRadioTrack(0);
+        } else {
+          currentRadioTitle.textContent = "Sin audios subidos en el servidor";
+        }
+      } catch (error) {
+        console.error("Error al cargar radio:", error);
+      }
+    }
+
+    function playRadioTrack(index) {
+      if (radioPlaylist.length === 0) return;
+      currentRadioIndex = index % radioPlaylist.length;
+      const currentTrack = radioPlaylist[currentRadioIndex];
+
+      currentRadioTitle.textContent = currentTrack.name;
+      radioPlayer.src = currentTrack.url;
+      radioPlayer.play().catch(() => {});
+    }
+
+    radioPlayer.addEventListener('ended', () => playRadioTrack(currentRadioIndex + 1));
+    radioPlayer.addEventListener('error', () => setTimeout(() => playRadioTrack(currentRadioIndex + 1), 2000));
+
+    // LOGIN DE ADMINISTRACIÓN
+    const authForm = document.getElementById('authForm');
+    const authError = document.getElementById('authError');
+    const authContainer = document.getElementById('authContainer');
+    const adminPanelContent = document.getElementById('adminPanelContent');
+
+    authForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const user = document.getElementById('authUser').value;
+      const pass = document.getElementById('authPass').value;
+
+      if (user === 'admin' && pass === 'coatetv') {
+        isAdminAuthenticated = true;
+        authContainer.style.display = 'none';
+        adminPanelContent.style.display = 'grid';
+        document.getElementById('adminView').classList.add('authenticated');
+        authError.textContent = '';
+        loadStorageFiles();
+      } else {
+        authError.textContent = 'Usuario o contraseña incorrectos.';
+      }
+    });
+
+    // PROCESO DE SUBIDA (UPLOAD)
+    const uploadForm = document.getElementById('uploadForm');
+    const progressBarFill = document.getElementById('progressBarFill');
+    const progressContainer = document.getElementById('progressContainer');
+    const statusMessage = document.getElementById('statusMessage');
+
+    uploadForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('mediaFile');
+      const mediaType = document.getElementById('mediaType').value;
+      const file = fileInput.files[0];
+
+      if (!file) return;
+
+      const folder = mediaType === 'video' ? 'videos/' : 'audio/';
+      const storageRef = ref(storage, folder + file.name);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      progressContainer.style.display = 'block';
+      statusMessage.textContent = 'Iniciando subida...';
+
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          progressBarFill.style.width = progress + '%';
+          statusMessage.textContent = `Subiendo: ${Math.round(progress)}%`;
+        },
+        (error) => {
+          console.error("Error al subir:", error);
+          statusMessage.textContent = 'Error: verifica haber publicado las Reglas de Storage.';
+        },
+        async () => {
+          statusMessage.textContent = '¡Subida realizada con éxito!';
+          uploadForm.reset();
+          loadStorageFiles();
+          
+          if (mediaType === 'video') await fetchTvPlaylist();
+          else await fetchRadioPlaylist();
+
+          setTimeout(() => {
+            progressContainer.style.display = 'none';
+            progressBarFill.style.width = '0%';
+            statusMessage.textContent = '';
+          }, 3000);
+        }
+      );
+    });
+
+    async function loadStorageFiles() {
+      const adminVideoList = document.getElementById('adminVideoList');
+      const adminAudioList = document.getElementById('adminAudioList');
+      adminVideoList.innerHTML = '';
+      adminAudioList.innerHTML = '';
+
+      try {
+        const vRes = await listAll(ref(storage, 'videos/'));
+        vRes.items.forEach(item => adminVideoList.innerHTML += `<div class="file-item">📹 ${item.name}</div>`);
+        if (vRes.items.length === 0) adminVideoList.innerHTML = '<small style="color:#aaa;">Sin videos.</small>';
+
+        const aRes = await listAll(ref(storage, 'audio/'));
+        aRes.items.forEach(item => adminAudioList.innerHTML += `<div class="file-item">📻 ${item.name}</div>`);
+        if (aRes.items.length === 0) adminAudioList.innerHTML = '<small style="color:#aaa;">Sin audios.</small>';
+      } catch (e) {
+        console.error("Error listando archivos:", e);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchTvPlaylist();
+      fetchRadioPlaylist();
+    });
+  </script>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+<body>
 
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-sky-600 text-white p-2.5 rounded-xl shadow-md">
-                    <i class="fa-solid fa-folder-tree text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">SI-ASAPROSAR</h1>
-                    <p class="text-xs text-slate-500 font-semibold">Programa Ángeles Descalzos / Academia de Empoderamiento de Niñas</p>
-                </div>
-            </div>
-            <div class="text-right font-mono text-xs bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-600">
-                Data Center: Registro Local Territorios
-            </div>
-        </div>
-    </header>
+  <nav>
+    <div class="logo">CoateTV & Radio Digital</div>
+    <div class="nav-tabs">
+      <button id="tabPublic" class="tab-btn active" onclick="switchTab('public')">📺 Señal en Vivo</button>
+      <button id="tabAdmin" class="tab-btn" onclick="switchTab('admin')">🔒 Admin Panel</button>
+    </div>
+  </nav>
 
-    <div class="max-w-7xl mx-auto w-full px-4 pt-6">
-        <div class="border-b border-slate-200 bg-white rounded-t-xl flex flex-wrap shadow-xs p-1 gap-1">
-            <button onclick="cambiarPestana('comunitaria')" id="btn-comunitaria" class="tab-btn active flex items-center gap-2 py-3 px-5 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-900 transition-all cursor-pointer rounded-t-lg">
-                <i class="fa-solid fa-users text-sky-600"></i> 1. Ficha Comunitaria Completa
-            </button>
-            <button onclick="cambiarPestana('actores')" id="btn-actores" class="tab-btn flex items-center gap-2 py-3 px-5 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-slate-900 transition-all cursor-pointer rounded-t-lg">
-                <i class="fa-solid fa-sitemap text-amber-600"></i> 2. Ficha Recolección Información Actores
-            </button>
+  <main id="publicView" class="view-content active">
+    <section class="media-card">
+      <h2><span class="status-badge">EN VIVO</span> Canal de TV Continuo</h2>
+      <video id="tvPlayer" controls autoplay muted poster="https://via.placeholder.com/800x450?text=Iniciando+CoateTV"></video>
+      <div style="margin-top: 10px;">
+        <small style="color: var(--text-dim);">Transmitiendo ahora:</small>
+        <h3 id="currentVideoTitle" style="margin: 5px 0;">Cargando programación...</h3>
+      </div>
+    </section>
+
+    <section class="media-card">
+      <h2><span class="status-badge" style="background:var(--success);">AL AIRE</span> Emisora de Radio Online</h2>
+      <p style="color: var(--text-dim); font-size: 0.9em;">Reproducción continua 24/7.</p>
+      <audio id="radioPlayer" controls style="margin-top:15px;"></audio>
+      <div style="margin-top: 10px;">
+        <small style="color: var(--text-dim);">Pista actual:</small>
+        <h3 id="currentRadioTitle" style="margin: 5px 0;">Cargando señal...</h3>
+      </div>
+    </section>
+  </main>
+
+  <main id="adminView" class="view-content">
+    <div id="authContainer" class="media-card auth-card">
+      <h2>Acceso Administrativo</h2>
+      <form id="authForm">
+        <div class="form-group">
+          <label for="authUser">Usuario</label>
+          <input type="text" id="authUser" placeholder="Ingresa usuario" required />
         </div>
+        <div class="form-group">
+          <label for="authPass">Contraseña</label>
+          <input type="password" id="authPass" placeholder="Ingresa contraseña" required />
+        </div>
+        <button type="submit" class="btn-submit">Ingresar al Panel</button>
+        <p id="authError" style="color: var(--accent); font-size: 0.9em; margin-top: 10px; text-align: center;"></p>
+      </form>
     </div>
 
-    <main class="max-w-7xl mx-auto w-full px-4 pb-12 flex-1">
-        
-        <div id="tab-comunitaria" class="tab-content active mt-4">
-            <form id="form-comunitaria" onsubmit="event.preventDefault(); generarAnalisisComunitario();" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
-                            <span class="w-1 h-4 bg-sky-600 rounded-xs"></span> I. Ubicación Geográfica y Datos Generales
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-600 mb-1">Nombre de la comunidad, caserío o colonia</label>
-                                <input type="text" id="c_comunidad" required class="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-sky-500 outline-none transition-all">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-600 mb-1">Caserío o Sector</label>
-                                <input type="text" id="c_caserio" class="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white outline-none">
-                            </div>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-600 mb-1">Departamento</label>
-                                    <input type="text" id="c_depto" value="Santa Ana" class="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-600 mb-1">Municipio</label>
-                                    <input type="text" id="c_muni" class="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white outline-none">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-600 mb-1">Distrito</label>
-                                    <input type="text" id="c_distrito" class="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white outline-none">
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-600 mb-1">N° Familias</label>
-                                    <input type="number" id="c_familias" min="0" class="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white outline-none">
-                                </div>
-                                <div class="col-span-2">
-                                    <label class="block text-xs font-bold text-slate-600 mb-1">Organizaciones que apoyan</label>
-                                    <input type="text" id="c_org_apoyan" class="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white outline-none" placeholder="Separadas por comas">
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-1">¿Conocen si hay migración de las familias al exterior o por violencia? ¿Razones?</label>
-                            <textarea id="c_migracion_razones" rows="2" class="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white outline-none resize-none"></textarea>
-                        </div>
-                    </div>
+    <div id="adminPanelContent" class="admin-panel-content">
+      <section class="media-card">
+        <h2>Cargar Nuevo Contenido</h2>
+        <form id="uploadForm">
+          <div class="form-group">
+            <label for="mediaType">Tipo de Medio</label>
+            <select id="mediaType" required>
+              <option value="video">Video (Canal TV - .mp4)</option>
+              <option value="audio">Audio (Radio - .mp3, .wav)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="mediaFile">Seleccionar Archivo</label>
+            <input type="file" id="mediaFile" accept="video/mp4,audio/mp3,audio/wav" required />
+          </div>
+          <button type="submit" class="btn-submit">Subir a Firebase Storage</button>
+        </form>
 
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-                        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
-                            <span class="w-1 h-4 bg-sky-600 rounded-xs"></span> Cuadro de Población (Cálculo Exacto)
-                        </h2>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs border-collapse">
-                                <thead>
-                                    <tr class="bg-slate-50 text-slate-700 uppercase font-bold border-b border-slate-200">
-                                        <th class="p-3">Rango Edades</th>
-                                        <th class="p-3" colspan="2">Mujeres (N° y %)</th>
-                                        <th class="p-3" colspan="2">Hombres (N° y %)</th>
-                                        <th class="p-3" colspan="2">Total Rango</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tbody-poblacion" class="divide-y divide-slate-100 font-medium">
-                                    <script>
-                                        const rangos = ["0-6", "7-15", "16-25", "26-40", "40-50", "50-mas"];
-                                        const etiquetas = ["0 a 6 años", "7 a 15 años", "16 a 25 años", "26 a 40 años", "40 a 50 años", "50 a más años"];
-                                        rangos.forEach((r, idx) => {
-                                            document.write(`
-                                                <tr data-rango="${r}">
-                                                    <td class="p-3 text-slate-900 font-semibold">${etiquetas[idx]}</td>
-                                                    <td class="p-1 w-24"><input type="number" min="0" value="0" oninput="calcularPoblacionComunidad()" class="w-full px-2 py-1 border border-slate-200 rounded-md input-f"></td>
-                                                    <td class="p-3 text-slate-500 pct-f">0.0%</td>
-                                                    <td class="p-1 w-24"><input type="number" min="0" value="0" oninput="calcularPoblacionComunidad()" class="w-full px-2 py-1 border border-slate-200 rounded-md input-m"></td>
-                                                    <td class="p-3 text-slate-500 pct-m">0.0%</td>
-                                                    <td class="p-3 text-slate-900 font-bold tot-rango">0</td>
-                                                    <td class="p-3 text-slate-500 pct-rango">0.0%</td>
-                                                </tr>
-                                            `);
-                                        });
-                                    </script>
-                                    <tr class="bg-slate-900 text-white font-bold">
-                                        <td class="p-3">TOTAL</td>
-                                        <td class="p-3" id="c_tot_f_n">0</td>
-                                        <td class="p-3 text-slate-300" id="c_tot_f_p">0.0%</td>
-                                        <td class="p-3" id="c_tot_m_n">0</td>
-                                        <td class="p-3 text-slate-300" id="c_tot_m_p">0.0%</td>
-                                        <td class="p-3 text-amber-400" id="c_tot_global_n">0</td>
-                                        <td class="p-3 text-amber-300">100%</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
-                            <span class="w-1 h-4 bg-sky-600 rounded-xs"></span> III. Organización Comunitaria y Representantes
-                        </h2>
-                        <div class="space-y-3 text-xs">
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">¿Cómo está organizada la comunidad?</label>
-                                <input type="text" id="c_como_org" class="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 outline-none">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">¿Principales problemas de organización?</label>
-                                <textarea id="c_problemas_org" rows="2" class="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 outline-none resize-none"></textarea>
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">¿Sugerencias para superar los problemas?</label>
-                                <textarea id="c_sugerencias_org" rows="2" class="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 outline-none resize-none"></textarea>
-                            </div>
-                        </div>
-
-                        <div class="pt-2">
-                            <label class="block text-xs font-bold text-slate-700 mb-2">Identificación de Representantes (Hasta 10):</label>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-left text-xs border-collapse">
-                                    <thead>
-                                        <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                                            <th class="p-2 w-8">N°</th>
-                                            <th class="p-2">Nombre del Representante</th>
-                                            <th class="p-2 w-16">Edad</th>
-                                            <th class="p-2">Cargo</th>
-                                            <th class="p-2">Organización</th>
-                                            <th class="p-2 w-28">Teléfono</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-100">
-                                        <script>
-                                            for(let i=1; i<=10; i++) {
-                                                document.write(`
-                                                    <tr class="rep-row">
-                                                        <td class="p-2 text-center font-bold text-slate-400">${i}</td>
-                                                        <td class="p-1"><input type="text" class="w-full text-xs px-2 py-1 border border-slate-200 rounded-md r-nombre"></td>
-                                                        <td class="p-1"><input type="number" class="w-full text-xs px-2 py-1 border border-slate-200 rounded-md r-edad"></td>
-                                                        <td class="p-1"><input type="text" class="w-full text-xs px-2 py-1 border border-slate-200 rounded-md r-cargo"></td>
-                                                        <td class="p-1"><input type="text" class="w-full text-xs px-2 py-1 border border-slate-200 rounded-md r-org"></td>
-                                                        <td class="p-1"><input type="text" class="w-full text-xs px-2 py-1 border border-slate-200 rounded-md r-tel"></td>
-                                                    </tr>
-                                                `);
-                                            }
-                                        </script>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
-                            <span class="w-1 h-4 bg-sky-600 rounded-xs"></span> IV. Infraestructura Educativa y Matrícula
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                            <div class="md:col-span-2">
-                                <label class="block font-bold text-slate-600 mb-1">Nombre del Centro Escolar</label>
-                                <input type="text" id="c_ce_nombre" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-md">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Código de Institución</label>
-                                <input type="text" id="c_ce_codigo" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-md">
-                            </div>
-                        </div>
-
-                        <div class="overflow-y-auto max-h-60 border border-slate-200 rounded-xl">
-                            <table class="w-full text-left text-xs border-collapse" id="tabla-grados-estudio">
-                                <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0">
-                                    <tr>
-                                        <th class="p-2">Grado Académico</th>
-                                        <th class="p-2 w-20">Niñas</th>
-                                        <th class="p-2 w-20">Niños</th>
-                                        <th class="p-2 w-20">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    <script>
-                                        const grs = ["Parvularia 4", "Parvularia 5", "Parvularia 6", "Primero", "Segundo", "Tercero", "Cuarto", "Quinto", "Sexto", "Séptimo", "Octavo", "Noveno", "1er Año Bachillerato", "2do Año Bachillerato"];
-                                        grs.forEach(g => {
-                                            document.write(`
-                                                <tr data-grado="${g}">
-                                                    <td class="p-2 font-medium text-slate-800">${g}</td>
-                                                    <td class="p-1"><input type="number" min="0" value="0" oninput="calcularMatriculaEscolar()" class="w-full px-1.5 py-0.5 border border-slate-200 rounded-sm g-ninas"></td>
-                                                    <td class="p-1"><input type="number" min="0" value="0" oninput="calcularMatriculaEscolar()" class="w-full px-1.5 py-0.5 border border-slate-200 rounded-sm g-ninos"></td>
-                                                    <td class="p-2 font-bold text-slate-900 g-total">0</td>
-                                                </tr>
-                                            `);
-                                        });
-                                    </script>
-                                    <tr class="bg-slate-900 text-white font-bold sticky bottom-0">
-                                        <td class="p-2">TOTAL MATRÍCULA</td>
-                                        <td class="p-2" id="esc_tot_ninas">0</td>
-                                        <td class="p-2" id="esc_tot_ninos">0</td>
-                                        <td class="p-2 text-amber-400" id="esc_tot_global">0</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
-                            <span class="w-1 h-4 bg-sky-600 rounded-xs"></span> V a VIII. Indicadores de Violencia Basada en Género
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                            <div>
-                                <label class="block font-bold text-slate-700 mb-1">Principales Agresores Identificados</label>
-                                <select id="c_vbg_agresor" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg">
-                                    <option value="Compañeros del mismo centro (Pares)">Compañeros del mismo centro (Pares)</option>
-                                    <option value="Familiares cercanos">Familiares cercanos</option>
-                                    <option value="Personas de la comunidad">Personas de la comunidad</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-700 mb-1">Protocolo Escrito (Ley Crecer Juntos)</label>
-                                <select id="c_ce_protocolo" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg">
-                                    <option value="Sí, se aplica rigurosamente">Sí, se aplica rigurosamente</option>
-                                    <option value="No contamos con un protocolo formal">No contamos con un protocolo formal</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
-                            <span class="w-1 h-4 bg-sky-600 rounded-xs"></span> IX y X. Monitoreo Sector Salud
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                            <div>
-                                <label class="block font-bold text-slate-700 mb-1">Frecuencia Mensual Confidencias VBG</label>
-                                <select id="c_sal_frecuencia" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg">
-                                    <option value="Ninguna">Ninguna</option>
-                                    <option value="De 1 a 3 mujeres">De 1 a 3 mujeres</option>
-                                    <option value="De 4 a 7 mujeres">De 4 a 7 mujeres</option>
-                                    <option value="Más de 7 mujeres">Más de 7 mujeres</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-700 mb-1">Tipología Detectada más Frecuente</label>
-                                <select id="c_sal_tipo_vbg" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg">
-                                    <option value="Violencia Psicológica">Violencia Psicológica</option>
-                                    <option value="Violencia Física">Violencia Física</option>
-                                    <option value="Violencia Sexual">Violencia Sexual</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap gap-4 items-center justify-between text-xs">
-                        <div class="flex-1 min-w-[200px]">
-                            <label class="block font-bold text-slate-500 uppercase text-[10px]">Técnico Evaluador</label>
-                            <input type="text" id="c_tecnico_firma" class="w-full border-b border-slate-200 bg-transparent outline-none py-1">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-500 uppercase text-[10px]">Fecha Control</label>
-                            <input type="date" id="c_fecha_recoleccion" class="border-b border-slate-200 bg-transparent outline-none py-1">
-                        </div>
-                        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 py-2.5 rounded-lg transition-all cursor-pointer flex items-center gap-2">
-                            <i class="fa-solid fa-chart-line"></i> Procesar Datos Territoriales
-                        </button>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-20 space-y-6">
-                        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                            <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                <i class="fa-solid fa-square-poll-vertical text-sky-600"></i> Análisis Estructural (Ficha 1)
-                            </h3>
-                            <button type="button" onclick="exportarExcelComunitaria()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer">
-                                <i class="fa-solid fa-file-excel"></i> Exportar
-                            </button>
-                        </div>
-                        <div class="relative w-full h-52 bg-slate-50 rounded-xl p-2 border border-dashed border-slate-200 flex items-center justify-center">
-                            <canvas id="chartComunitariaCanvas"></canvas>
-                        </div>
-                        <div class="space-y-2">
-                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Observaciones Técnicas</h4>
-                            <div id="analisis-comunitario-txt" class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 leading-relaxed max-h-60 overflow-y-auto">
-                                <p><i class="fa-solid fa-circle-info text-sky-500"></i> Procese la ficha para desplegar las métricas poblacionales locales y las alertas críticas.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </form>
+        <div id="progressContainer" class="progress-container">
+          <div class="progress-bar-bg">
+            <div id="progressBarFill" class="progress-bar-fill"></div>
+          </div>
+          <small id="statusMessage" style="display:block; margin-top:5px; text-align:center; color: var(--text-dim);"></small>
         </div>
+      </section>
 
-        <div id="tab-actores" class="tab-content mt-4">
-            <form id="form-actores" onsubmit="event.preventDefault(); generarAnalisisActores();" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
-                            <span class="w-1 h-4 bg-amber-500 rounded-xs"></span> I y II. Datos de Control e Identificación del Actor
-                        </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Código de Ficha Actor</label>
-                                <input type="text" id="a_codigo_ficha" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-md">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Comunidad / Cantón</label>
-                                <input type="text" id="a_comunidad_ref" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-md">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Municipio / Distrito</label>
-                                <input type="text" id="a_municipio" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-md">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Nombre del Actor (Persona u Org.)</label>
-                                <input type="text" id="a_nombre_actor" required class="w-full p-2 border border-slate-200 bg-slate-50 rounded-md">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Nombre del Enlace</label>
-                                <input type="text" id="a_enlace_entrevistado" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-md">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Teléfono Directo</label>
-                                <input type="text" id="a_telefono" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-md">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Tipo de Actor</label>
-                                <select id="a_tipo_actor" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg">
-                                    <option value="Líder Comunitario Natural">Líder Comunitario Natural</option>
-                                    <option value="ADESCO / Comité">ADESCO / Comité</option>
-                                    <option value="Director/a Escolar">Director/a Escolar</option>
-                                    <option value="ONG / Fundación">ONG / Fundación</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Estatus Legal</label>
-                                <select id="a_estatus_legal" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg">
-                                    <option value="Con Personería Jurídica Vigente">Con Personería Jurídica Vigente</option>
-                                    <option value="Estructura Informal / No regulada">Estructura Informal / No regulada</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Tiempo de operar en comunidad (Años)</label>
-                                <input type="number" id="a_tiempo_operar" min="0" value="0" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-md">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-700 mb-1">Proyectos con Fondos de Cooperación</label>
-                                <select id="a_fondos_cooperacion" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg">
-                                    <option value="NO">No registra fondos externos</option>
-                                    <option value="SI">Sí, posee historial de fondos</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+      <section class="media-card">
+        <h2>Archivos Almacenados</h2>
+        <h3>Programación de TV (`videos/`)</h3>
+        <div id="adminVideoList" class="file-list"></div>
+        <h3 style="margin-top: 20px;">Programación de Radio (`audio/`)</h3>
+        <div id="adminAudioList" class="file-list"></div>
+      </section>
+    </div>
+  </main>
 
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                        <h2 class="text-base font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
-                            <span class="w-1 h-4 bg-amber-500 rounded-xs"></span> III. Recopilación de Información Primaria y Rol Local
-                        </h2>
-                        <div class="space-y-3 text-xs">
-                            <div>
-                                <label class="block font-bold text-slate-600 mb-1">Acciones o programas que ejecuta diariamente:</label>
-                                <textarea id="a_acciones_diarias" rows="2" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg resize-none"></textarea>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block font-bold text-slate-600 mb-1">Población Objetivo Principal</label>
-                                    <select id="a_poblacion_objetivo" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg">
-                                        <option value="Primera Infancia/Niñez">Primera Infancia / Niñez</option>
-                                        <option value="Adolescentes">Adolescentes</option>
-                                        <option value="Mujeres">Mujeres</option>
-                                        <option value="Familias">Familias</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block font-bold text-slate-600 mb-1">Volumen de Cobertura Aproximado (N° Personas)</label>
-                                    <input type="number" id="a_cobertura_num" min="0" value="0" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-md">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block font-bold text-slate-700 mb-1">Sensibilidad frente al Marco Legal de Protection (Ley Crecer Juntos)</label>
-                                <textarea id="a_sensibilidad_marcos" rows="2" class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg resize-none" placeholder="Detalle el conocimiento de normativas de salvaguarda..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap gap-4 items-center justify-between text-xs">
-                        <div class="flex-1 min-w-[200px]">
-                            <label class="block font-bold text-slate-500 uppercase text-[10px]">Persona Informante</label>
-                            <input type="text" id="a_tecnico_nom" class="w-full border-b border-slate-200 bg-transparent outline-none py-1">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-slate-500 uppercase text-[10px]">Fecha Mapeo</label>
-                            <input type="date" id="a_fecha_mapeo" class="border-b border-slate-200 bg-transparent outline-none py-1">
-                        </div>
-                        <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-5 py-2.5 rounded-lg transition-all cursor-pointer flex items-center gap-2">
-                            <i class="fa-solid fa-diagram-project"></i> Analizar y Mapear Actor
-                        </button>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-20 space-y-6">
-                        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                            <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                <i class="fa-solid fa-chart-pie text-amber-600"></i> Matriz de Capacidad (Ficha 2)
-                            </h3>
-                            <button type="button" onclick="exportarExcelActores()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer">
-                                <i class="fa-solid fa-file-excel"></i> Exportar
-                            </button>
-                        </div>
-                        <div class="relative w-full h-52 bg-slate-50 rounded-xl p-2 border border-dashed border-slate-200 flex items-center justify-center">
-                            <canvas id="chartActoresCanvas"></canvas>
-                        </div>
-                        <div class="space-y-2">
-                            <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Dictamen Estratégico</h4>
-                            <div id="analisis-actores-txt" class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 leading-relaxed max-h-60 overflow-y-auto">
-                                <p><i class="fa-solid fa-circle-nodes text-amber-500"></i> Procese el formulario del actor cualitativo para visualizar ponderaciones y diagnóstico.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-    </main>
-
-    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 font-semibold mt-auto">
-        &copy; 2026 Programa Ángeles Descalzos / ASAPROSAR. Santa Ana, El Salvador.
-    </footer>
-
-    <script>
-        // --- NAVEGACIÓN ENTRE PESTAÑAS ---
-        function cambiarPestana(pestanaId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById(`tab-${pestanaId}`).classList.add('active');
-            document.getElementById(`btn-${pestanaId}`).classList.add('active');
-        }
-
-        // Instancias globales independientes para evitar choques de renderizado
-        let chartComunitaria = null;
-        let chartActores = null;
-
-        // --- CÁLCULOS TIEMPO REAL: FICHA 1 ---
-        function calcularPoblacionComunidad() {
-            let totalF = 0, totalM = 0;
-            let datosRango = [];
-
-            document.querySelectorAll('#tbody-poblacion tr[data-rango]').forEach(row => {
-                let f = parseInt(row.querySelector('.input-f').value) || 0;
-                let m = parseInt(row.querySelector('.input-m').value) || 0;
-                let subtotal = f + m;
-                
-                row.querySelector('.tot-rango').innerText = subtotal;
-                totalF += f;
-                totalM += m;
-                datosRango.push({ f, m, subtotal });
-            });
-
-            let global = totalF + totalM;
-
-            let idx = 0;
-            document.querySelectorAll('#tbody-poblacion tr[data-rango]').forEach(row => {
-                let d = datosRango[idx];
-                row.querySelector('.pct-f').innerText = global > 0 ? ((d.f / global) * 100).toFixed(1) + '%' : '0.0%';
-                row.querySelector('.pct-m').innerText = global > 0 ? ((d.m / global) * 100).toFixed(1) + '%' : '0.0%';
-                row.querySelector('.pct-rango').innerText = global > 0 ? ((d.subtotal / global) * 100).toFixed(1) + '%' : '0.0%';
-                idx++;
-            });
-
-            document.getElementById('c_tot_f_n').innerText = totalF;
-            document.getElementById('c_tot_m_n').innerText = totalM;
-            document.getElementById('c_tot_global_n').innerText = global;
-            document.getElementById('c_tot_f_p').innerText = global > 0 ? ((totalF / global) * 100).toFixed(1) + '%' : '0.0%';
-            document.getElementById('c_tot_m_p').innerText = global > 0 ? ((totalM / global) * 100).toFixed(1) + '%' : '0.0%';
-
-            return { totalF, totalM, global };
-        }
-
-        function calcularMatriculaEscolar() {
-            let totNinas = 0, totNinos = 0;
-            document.querySelectorAll('#tabla-grados-estudio tbody tr[data-grado]').forEach(row => {
-                let ninas = parseInt(row.querySelector('.g-ninas').value) || 0;
-                let ninos = parseInt(row.querySelector('.g-ninos').value) || 0;
-                let totalGrado = ninas + ninos;
-                
-                row.querySelector('.g-total').innerText = totalGrado;
-                totNinas += ninas;
-                totNinos += ninos;
-            });
-            document.getElementById('esc_tot_ninas').innerText = totNinas;
-            document.getElementById('esc_tot_ninos').innerText = totNinos;
-            document.getElementById('esc_tot_global').innerText = totNinas + totNinos;
-        }
-
-        // --- PROCESAMIENTO ANALÍTICO: FICHA 1 ---
-        function generarAnalisisComunitario() {
-            const demo = calcularPoblacionComunidad();
-            const familias = document.getElementById('c_familias').value || '0';
-            const frecSalud = document.getElementById('c_sal_frecuencia').value;
-            const tipoSalud = document.getElementById('c_sal_tipo_vbg').value;
-
-            if(chartComunitaria) chartComunitaria.destroy();
-            const ctx = document.getElementById('chartComunitariaCanvas').getContext('2d');
-            chartComunitaria = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Mujeres', 'Hombres'],
-                    datasets: [{
-                        data: [demo.totalF, demo.totalM],
-                        backgroundColor: ['#f43f5e', '#0284c7'],
-                        borderWidth: 1.5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
-                }
-            });
-
-            document.getElementById('analisis-comunitario-txt').innerHTML = `
-                <div class="space-y-1">
-                    <p>• <strong>Población Censada:</strong> <b>${demo.global}</b> habitantes.</p>
-                    <p>• <strong>Grupos Familiares:</strong> <b>${familias}</b> familias registradas.</p>
-                    <p>• <strong>Monitoreo Salud (VBG):</strong> Reportes con frecuencia <b>"${frecSalud}"</b>. Tipología común: <b>${tipoSalud}</b>.</p>
-                </div>
-            `;
-        }
-
-        // --- PROCESAMIENTO ANALÍTICO: FICHA 2 (ACTORES CLAVE) ---
-        function generarAnalisisActores() {
-            const tipo = document.getElementById('a_tipo_actor').value;
-            const estatus = document.getElementById('a_estatus_legal').value;
-            const cobertura = document.getElementById('a_cobertura_num').value || '0';
-            const fondos = document.getElementById('a_fondos_cooperacion').value;
-            const sensibilidad = document.getElementById('a_sensibilidad_marcos').value || '';
-
-            // Construcción de métricas ponderadas numéricas de desempeño (0-100)
-            let ptEstabilidad = estatus.includes('Vigente') ? 95 : 45;
-            let ptFondos = fondos === 'SI' ? 90 : 35;
-            let ptTiempo = Math.min(100, (parseInt(document.getElementById('a_tiempo_operar').value) || 0) * 8);
-            let ptNormativa = sensibilidad.length > 15 ? 90 : 40;
-
-            if(chartActores) chartActores.destroy();
-            const ctx = document.getElementById('chartActoresCanvas').getContext('2d');
-            chartActores = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Estabilidad', 'Hist. Proy.', 'Permanencia', 'Salvaguardas'],
-                    datasets: [{
-                        data: [ptEstabilidad, ptFondos, ptTiempo, ptNormativa],
-                        backgroundColor: '#d97706',
-                        borderRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { min: 0, max: 100, ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } },
-                    plugins: { legend: { display: false } }
-                }
-            });
-
-            let promedioCap = (ptEstabilidad + ptFondos + ptTiempo + ptNormativa) / 4;
-            let badge = promedioCap >= 65 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200';
-            let labelDictamen = promedioCap >= 65 ? 'CONFIANZA: ALIANZA VIABLE' : 'EVALUACIÓN: COOPERACIÓN ASISTIDA';
-
-            document.getElementById('analisis-actores-txt').innerHTML = `
-                <div class="space-y-1.5">
-                    <p>• <strong>Tipo Actor:</strong> <b>${tipo}</b> (Estatus: ${estatus}).</p>
-                    <p>• <strong>Cobertura Directa:</strong> ~<b>${cobertura}</b> personas en territorio.</p>
-                    <p>• <strong>Capacidad Consolidada:</strong> <b>${promedioCap.toFixed(0)}%</b>.</p>
-                    <div class="pt-1 text-center"><span class="${badge} text-[10px] px-2 py-0.5 rounded font-bold">${labelDictamen}</span></div>
-                </div>
-            `;
-        }
-
-        // --- EXPORTACIONES FIEL A EXCEL ---
-        function exportarExcelComunitaria() {
-            const demo = calcularPoblacionComunidad();
-            let dataAOA = [
-                ["ASAPROSAR - PROGRAMA ÁNGELES DESCALZOS"],
-                ["FICHA COMUNITARIA CONSOLIDADA"],
-                [],
-                ["Ubicación", document.getElementById('c_comunidad').value],
-                ["Familias", document.getElementById('c_familias').value],
-                ["Mujeres Totales", demo.totalF],
-                ["Hombres Totales", demo.totalM],
-                ["Global Habitantes", demo.global],
-                ["Técnico Responsable", document.getElementById('c_tecnico_firma').value]
-            ];
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(dataAOA);
-            XLSX.utils.book_append_sheet(wb, ws, "Ficha Comunitaria");
-            XLSX.writeFile(wb, `Ficha_Comunitaria_${document.getElementById('c_comunidad').value || 'Local'}.xlsx`);
-        }
-
-        function exportarExcelActores() {
-            let dataAOA = [
-                ["ASAPROSAR - PROGRAMA ÁNGELES DESCALZOS"],
-                ["FICHA DE ACTORES CLAVE TERRITORIALES"],
-                [],
-                ["Código Ficha", document.getElementById('a_codigo_ficha').value],
-                ["Actor", document.getElementById('a_nombre_actor').value],
-                ["Enlace Directo", document.getElementById('a_enlace_entrevistado').value],
-                ["Tipo", document.getElementById('a_tipo_actor').value],
-                ["Estatus Jurídico", document.getElementById('a_estatus_legal').value],
-                ["Cobertura N°", document.getElementById('a_cobertura_num').value]
-            ];
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(dataAOA);
-            XLSX.utils.book_append_sheet(wb, ws, "Mapeo Actor");
-            XLSX.writeFile(wb, `Mapeo_Actor_${document.getElementById('a_nombre_actor').value || 'General'}.xlsx`);
-        }
-
-        // Fechas automáticas de inicio
-        window.onload = function() {
-            const hoy = new Date().toISOString().split('T')[0];
-            document.getElementById('c_fecha_recoleccion').value = hoy;
-            document.getElementById('a_fecha_mapeo').value = hoy;
-        };
-    </script>
 </body>
 </html>
