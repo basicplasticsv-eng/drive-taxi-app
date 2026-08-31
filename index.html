@@ -85,7 +85,6 @@
       position: relative;
     }
 
-    /* Contenedor HD 16:9 sin controles visibles */
     .video-container {
       position: relative;
       width: 100%;
@@ -102,7 +101,7 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      pointer-events: none; /* Deshabilita clics e interacción sobre el video */
+      pointer-events: none;
     }
 
     .audio-container {
@@ -235,10 +234,12 @@
       const btn = document.getElementById('radioAudioBtn');
       if (audio.muted) {
         audio.muted = false;
+        localStorage.setItem('radioMuted', 'false');
         audio.play().catch(() => {});
         btn.textContent = '🔊 Silenciar';
       } else {
         audio.muted = true;
+        localStorage.setItem('radioMuted', 'true');
         btn.textContent = '🔇 Activar Sonido';
       }
     };
@@ -269,15 +270,37 @@
           name: item.name,
           url: supabase.storage.from('audio').getPublicUrl(item.name).data.publicUrl
         }));
-        playRadioTrack(0);
+        
+        const savedIndex = localStorage.getItem('radioTrackIndex');
+        const initialIndex = savedIndex ? parseInt(savedIndex) % radioPlaylist.length : 0;
+        playRadioTrack(initialIndex);
       }
     }
 
     function playRadioTrack(index) {
       if (radioPlaylist.length === 0) return;
       currentRadioIndex = index % radioPlaylist.length;
+      localStorage.setItem('radioTrackIndex', currentRadioIndex);
+
       const player = document.getElementById('radioPlayer');
       player.src = radioPlaylist[currentRadioIndex].url;
+
+      // Restablecer posición previa guardada si corresponde a la pista actual
+      const savedTime = localStorage.getItem('radioCurrentTime');
+      if (savedTime && parseFloat(savedTime) > 0) {
+        player.currentTime = parseFloat(savedTime);
+      }
+
+      // Restablecer estado de audio (silenciado o con sonido)
+      const isMuted = localStorage.getItem('radioMuted');
+      if (isMuted === 'false') {
+        player.muted = false;
+        document.getElementById('radioAudioBtn').textContent = '🔊 Silenciar';
+      } else {
+        player.muted = true;
+        document.getElementById('radioAudioBtn').textContent = '🔇 Activar Sonido';
+      }
+
       player.play().catch(() => {});
     }
 
@@ -285,9 +308,22 @@
       fetchTvPlaylist();
       fetchRadioPlaylist();
 
-      // Bucle de reproducción continuo para TV y Radio
+      const radioPlayer = document.getElementById('radioPlayer');
+
+      // Guardar constantemente el progreso de reproducción
+      radioPlayer.addEventListener('timeupdate', () => {
+        if (radioPlayer.currentTime > 0) {
+          localStorage.setItem('radioCurrentTime', radioPlayer.currentTime);
+        }
+      });
+
+      // Pasar a la siguiente pista de radio al finalizar
+      radioPlayer.addEventListener('ended', () => {
+        localStorage.setItem('radioCurrentTime', '0');
+        playRadioTrack(currentRadioIndex + 1);
+      });
+
       document.getElementById('tvPlayer').addEventListener('ended', () => playVideo(currentVideoIndex + 1));
-      document.getElementById('radioPlayer').addEventListener('ended', () => playRadioTrack(currentRadioIndex + 1));
 
       document.getElementById('authForm').addEventListener('submit', (e) => {
         e.preventDefault();
@@ -348,7 +384,6 @@
   </nav>
 
   <main id="publicView" class="view-content active">
-    <!-- SECCIÓN TV -->
     <section class="media-card">
       <h2 style="display: flex; justify-content: space-between; align-items: center;">
         Coate TV
@@ -362,7 +397,6 @@
       </div>
     </section>
 
-    <!-- SECCIÓN RADIO -->
     <section class="media-card">
       <h2 style="display: flex; justify-content: space-between; align-items: center;">
         Emisora de Radio
