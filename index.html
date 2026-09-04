@@ -34,33 +34,36 @@
     nav {
       background-color: #060b18;
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 20px;
+      padding: 12px 15px;
       border-bottom: 1px solid var(--border);
       box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      gap: 10px;
     }
 
     nav .logo {
       font-weight: bold;
-      font-size: 1.3rem;
+      font-size: 1.1rem;
       color: var(--accent);
       letter-spacing: 0.5px;
     }
 
     .nav-tabs {
       display: flex;
-      gap: 10px;
+      gap: 8px;
     }
 
     .tab-btn {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 8px 16px;
+      padding: 8px 12px;
       border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
+      font-size: 0.85rem;
       transition: all 0.2s ease;
     }
 
@@ -72,7 +75,7 @@
 
     .view-content {
       display: none;
-      padding: 15px;
+      padding: 12px;
       max-width: 1400px;
       margin: 0 auto;
     }
@@ -81,21 +84,21 @@
       display: block;
     }
 
-    /* Layout Adaptable a Móviles */
     .main-tv-layout {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 15px;
     }
 
     @media (min-width: 992px) {
       .main-tv-layout {
         display: grid;
-        grid-template-columns: 160px 1fr 160px;
+        grid-template-columns: 180px 1fr 180px;
         align-items: start;
       }
     }
 
+    /* Banners publicitarios responsivos */
     .ad-banner-side {
       background: rgba(19, 31, 62, 0.85);
       border: 1px dashed var(--border);
@@ -111,41 +114,49 @@
       backdrop-filter: blur(5px);
       box-sizing: border-box;
       width: 100%;
+      min-height: 100px;
     }
 
     @media (min-width: 992px) {
       .ad-banner-side {
-        min-height: 600px;
+        min-height: 500px;
       }
     }
 
     .ad-banner-side img {
       width: 100%;
-      max-width: 320px;
+      max-width: 100%;
       height: auto;
       border-radius: 6px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      display: block;
+      object-fit: contain;
     }
 
-    @media (min-width: 992px) {
-      .ad-banner-side img {
-        max-width: 160px;
-      }
+    .ad-placeholder-text {
+      padding: 20px 10px;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(0,0,0,0.2);
     }
 
     .media-card {
       background-color: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 20px;
+      padding: 15px;
       position: relative;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       box-shadow: 0 8px 25px rgba(0,0,0,0.3);
     }
 
     .media-card h2 {
       color: #ffffff;
       margin-top: 0;
+      font-size: 1.2rem;
     }
 
     .video-container {
@@ -171,46 +182,44 @@
 
     .channel-logo-overlay {
       position: absolute;
-      top: 15px;
-      right: 15px;
+      top: 10px;
+      right: 10px;
       z-index: 10;
-      height: 35px;
+      height: 30px;
       width: auto;
       opacity: 0.85;
       pointer-events: none;
       filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.8));
     }
 
-    @media (min-width: 768px) {
-      .channel-logo-overlay { height: 45px; }
-    }
-
     .video-overlay-btn {
       position: absolute;
-      bottom: 15px;
-      right: 15px;
+      bottom: 10px;
+      right: 10px;
+      left: 10px;
       z-index: 10;
       display: flex;
-      gap: 10px;
+      justify-content: flex-end;
+      gap: 8px;
     }
 
     .btn-audio-toggle, .btn-fullscreen-toggle {
       background-color: var(--accent);
       color: white;
       border: none;
-      padding: 8px 14px;
+      padding: 8px 12px;
       border-radius: 20px;
       font-weight: bold;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 0.85rem;
+      gap: 4px;
+      font-size: 0.75rem;
       box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     }
 
     .audio-container {
-      margin-top: 15px;
+      margin-top: 10px;
       padding: 15px;
       background-color: #060b18;
       border-radius: 8px;
@@ -225,14 +234,13 @@
     @media (min-width: 600px) {
       .audio-container {
         flex-direction: row;
-        padding: 20px;
       }
     }
 
     .status-badge {
-      font-size: 0.8em;
+      font-size: 0.75em;
       background: var(--accent);
-      padding: 4px 10px;
+      padding: 4px 8px;
       border-radius: 12px;
       font-weight: bold;
       color: #ffffff;
@@ -459,7 +467,7 @@
             }
           }
         } catch (e) {
-          console.error('Error procesando audio de Archive.org:', e);
+          console.error('Error procesando audio:', e);
         }
       }
 
@@ -501,12 +509,24 @@
       `).join('');
     }
 
-    function updateBannerImages() {
-      const imgLeft = document.getElementById('imgBannerLeft');
-      const imgRight = document.getElementById('imgBannerRight');
+    function renderBanner(containerId, imageUrl, defaultText) {
+      const container = document.getElementById(containerId);
+      if (imageUrl && imageUrl.trim() !== '') {
+        container.innerHTML = `
+          <p style="margin-bottom: 8px; font-weight: 600;">Publicidad</p>
+          <img src="${imageUrl}" alt="${defaultText}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'ad-placeholder-text\\'>📢 Espacio Disponible para Publicidad</div>';">
+        `;
+      } else {
+        container.innerHTML = `
+          <p style="margin-bottom: 8px; font-weight: 600;">Publicidad</p>
+          <div class="ad-placeholder-text">📢 Espacio Disponible para Publicidad</div>
+        `;
+      }
+    }
 
-      if (adBanners.left) imgLeft.src = adBanners.left;
-      if (adBanners.right) imgRight.src = adBanners.right;
+    function updateBannerImages() {
+      renderBanner('bannerLeftContainer', adBanners.left, 'Publicidad Superior');
+      renderBanner('bannerRightContainer', adBanners.right, 'Publicidad Inferior');
     }
 
     window.removeArchiveItem = function(index) {
@@ -632,10 +652,7 @@
     <div class="main-tv-layout">
       
       <!-- PUBLICIDAD SUPERIOR / IZQUIERDA -->
-      <aside class="ad-banner-side">
-        <p style="margin-bottom: 8px; font-weight: 600;">Publicidad</p>
-        <img id="imgBannerLeft" src="https://via.placeholder.com/300x250/0b1329/ffffff?text=Publicidad+1" alt="Publicidad Izquierda">
-      </aside>
+      <aside id="bannerLeftContainer" class="ad-banner-side"></aside>
 
       <!-- SECCIÓN TV Y RADIO -->
       <div>
@@ -668,10 +685,7 @@
       </div>
 
       <!-- PUBLICIDAD INFERIOR / DERECHA -->
-      <aside class="ad-banner-side">
-        <p style="margin-bottom: 8px; font-weight: 600;">Publicidad</p>
-        <img id="imgBannerRight" src="https://via.placeholder.com/300x250/0b1329/ffffff?text=Publicidad+2" alt="Publicidad Derecha">
-      </aside>
+      <aside id="bannerRightContainer" class="ad-banner-side"></aside>
 
     </div>
   </main>
@@ -718,11 +732,11 @@
         <form id="updateBannersForm">
           <div class="form-group">
             <label>URL Imagen Banner Izquierdo / Superior</label>
-            <input type="url" id="bannerLeftUrl" placeholder="https://..." required />
+            <input type="url" id="bannerLeftUrl" placeholder="https://..." />
           </div>
           <div class="form-group">
             <label>URL Imagen Banner Derecho / Inferior</label>
-            <input type="url" id="bannerRightUrl" placeholder="https://..." required />
+            <input type="url" id="bannerRightUrl" placeholder="https://..." />
           </div>
           <button type="submit" class="btn-submit" style="background-color: #2e86de;">🖼️ Guardar Banners</button>
         </form>
