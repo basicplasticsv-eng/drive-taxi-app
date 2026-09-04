@@ -94,14 +94,14 @@
       overflow: hidden;
     }
 
-    .video-container video {
+    .video-container video, .video-container iframe {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
+      border: none;
       object-fit: contain;
-      pointer-events: none;
     }
 
     .audio-container {
@@ -190,6 +190,9 @@
     .admin-panel-content { display: none; width: 100%; gap: 20px; }
   </style>
 
+  <!-- Script de la API de YouTube -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -197,11 +200,23 @@
     const SUPABASE_KEY = 'sb_publishable_5tq4snjI8q4AfrbBYgzrVw_UfoZw9vA';
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let tvPlaylist = [];
+    // Enlaces asignados a la transmisión del Canal de TV
+    const fixedTvPlaylist = [
+      { type: 'youtube', id: 'ozv8ugNm0P0' },
+      { type: 'mp4', url: 'https://archive.org/download/videoplayback-4_20260904/Don%20Juan.mp4' },
+      { type: 'mp4', url: 'https://archive.org/download/videoplayback-4_20260904/Logo%20Branding%20Blue%20and%20White%20Modern%20Video.mp4' },
+      { type: 'mp4', url: 'https://archive.org/download/videoplayback-4_20260904/NUevo%20Sitio%20el%20Rosario.mp4' },
+      { type: 'mp4', url: 'https://archive.org/download/videoplayback-4_20260904/Sade%20-%20Smooth%20Operator%20-%20Official%20-%201984.mp4' },
+      { type: 'mp4', url: 'https://archive.org/download/videoplayback-4_20260904/videoplayback%20%284%29.mp4' }
+    ];
+
+    let tvPlaylist = [...fixedTvPlaylist];
     let radioPlaylist = [];
     let currentVideoIndex = 0;
     let currentRadioIndex = 0;
     let isAdminAuthenticated = false;
+    let ytPlayer = null;
+    let isTvMuted = true;
 
     window.switchTab = function(tabName) {
       document.querySelectorAll('.view-content').forEach(el => el.classList.remove('active'));
@@ -220,11 +235,15 @@
     window.toggleTvAudio = function() {
       const video = document.getElementById('tvPlayer');
       const btn = document.getElementById('tvAudioBtn');
-      if (video.muted) {
+      isTvMuted = !isTvMuted;
+
+      if (!isTvMuted) {
         video.muted = false;
+        if (ytPlayer && typeof ytPlayer.unMute === 'function') ytPlayer.unMute();
         btn.textContent = '🔊 Silenciar';
       } else {
         video.muted = true;
+        if (ytPlayer && typeof ytPlayer.mute === 'function') ytPlayer.mute();
         btn.textContent = '🔇 Activar Sonido';
       }
     };
@@ -246,22 +265,59 @@
 
     async function fetchTvPlaylist() {
       const { data, error } = await supabase.storage.from('videos').list();
+      let supabaseVideos = [];
       if (data && data.length > 0) {
-        tvPlaylist = data.map(item => ({
+        supabaseVideos = data.map(item => ({
+          type: 'mp4',
           name: item.name,
           url: supabase.storage.from('videos').getPublicUrl(item.name).data.publicUrl
         }));
-        playVideo(0);
       }
+      tvPlaylist = [...fixedTvPlaylist, ...supabaseVideos];
+      playVideo(0);
     }
 
-    function playVideo(index) {
+    window.playVideo = function(index) {
       if (tvPlaylist.length === 0) return;
       currentVideoIndex = index % tvPlaylist.length;
-      const player = document.getElementById('tvPlayer');
-      player.src = tvPlaylist[currentVideoIndex].url;
-      player.play().catch(() => {});
-    }
+      const currentMedia = tvPlaylist[currentVideoIndex];
+
+      const htmlPlayer = document.getElementById('tvPlayer');
+      const ytContainer = document.getElementById('ytPlayerContainer');
+
+      if (currentMedia.type === 'youtube') {
+        htmlPlayer.style.display = 'none';
+        htmlPlayer.pause();
+        ytContainer.style.display = 'block';
+
+        if (ytPlayer) {
+          ytPlayer.loadVideoById(currentMedia.id);
+          if (isTvMuted) ytPlayer.mute(); else ytPlayer.unMute();
+        } else {
+          window.onYouTubeIframeAPIReady = () => {
+            ytPlayer = new YT.Player('ytPlayerContainer', {
+              videoId: currentMedia.id,
+              playerVars: { 'autoplay': 1, 'controls': 0, 'mute': isTvMuted ? 1 : 0 },
+              events: {
+                'onStateChange': (event) => {
+                  if (event.data === YT.PlayerState.ENDED) {
+                    playVideo(currentVideoIndex + 1);
+                  }
+                }
+              }
+            });
+          };
+        }
+      } else {
+        ytContainer.style.display = 'none';
+        if (ytPlayer && typeof ytPlayer.stopVideo === 'function') ytPlayer.stopVideo();
+
+        htmlPlayer.style.display = 'block';
+        htmlPlayer.src = currentMedia.url;
+        htmlPlayer.muted = isTvMuted;
+        htmlPlayer.play().catch(() => {});
+      }
+    };
 
     async function fetchRadioPlaylist() {
       const { data, error } = await supabase.storage.from('audio').list();
@@ -309,12 +365,10 @@
       const radioPlayer = document.getElementById('radioPlayer');
       const tvPlayer = document.getElementById('tvPlayer');
 
-      // Pasar automáticamente al siguiente video cuando termina el actual
       tvPlayer.addEventListener('ended', () => {
         playVideo(currentVideoIndex + 1);
       });
 
-      // Pasar al siguiente audio de la lista cuando termina
       radioPlayer.addEventListener('timeupdate', () => {
         if (radioPlayer.currentTime > 0) {
           localStorage.setItem('radioCurrentTime', radioPlayer.currentTime);
@@ -393,6 +447,7 @@
       </h2>
       <div class="video-container">
         <video id="tvPlayer" autoplay muted playsinline></video>
+        <div id="ytPlayerContainer" style="display:none; width:100%; height:100%;"></div>
         <div class="video-overlay-btn">
           <button id="tvAudioBtn" class="btn-audio-toggle" onclick="toggleTvAudio()">🔇 Activar Sonido</button>
         </div>
