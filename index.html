@@ -6,37 +6,47 @@
   <title>CoateTV & Radio Digital</title>
   <style>
     :root {
-      --bg-color: #121212;
-      --card-bg: #1e1e1e;
+      --bg-color: #0b1329;
+      --card-bg: #131f3e;
       --accent: #ff4757;
       --accent-hover: #ff6b81;
       --text: #ffffff;
-      --text-dim: #aaa;
-      --border: #333;
+      --text-dim: #d1d5db;
+      --border: #21325e;
       --success: #2ed573;
     }
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--bg-color);
+      /* Fondo Azul Marino Oscuro con líneas difuminadas rojas */
+      background-image: 
+        radial-gradient(circle at 20% 20%, rgba(255, 71, 87, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(255, 71, 87, 0.12) 0%, transparent 40%),
+        linear-gradient(135deg, rgba(255, 71, 87, 0.08) 1px, transparent 1px),
+        linear-gradient(45deg, rgba(255, 71, 87, 0.08) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px;
+      background-attachment: fixed;
       color: var(--text);
       margin: 0;
       padding: 0;
     }
 
     nav {
-      background-color: #0a0a0a;
+      background-color: #060b18;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 20px;
+      padding: 12px 20px;
       border-bottom: 1px solid var(--border);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     }
 
     nav .logo {
       font-weight: bold;
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       color: var(--accent);
+      letter-spacing: 0.5px;
     }
 
     .nav-tabs {
@@ -45,17 +55,20 @@
     }
 
     .tab-btn {
-      background: transparent;
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border);
       color: var(--text);
       padding: 8px 16px;
       border-radius: 6px;
       cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
     }
 
     .tab-btn.active {
       background-color: var(--accent);
       border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(255, 71, 87, 0.4);
     }
 
     .view-content {
@@ -69,7 +82,7 @@
       display: block;
     }
 
-    /* Layout principal con banners publicitarios a los lados */
+    /* Layout principal con banners publicitarios */
     .main-tv-layout {
       display: grid;
       grid-template-columns: 1fr;
@@ -84,32 +97,43 @@
     }
 
     .ad-banner-side {
-      background: #181818;
+      background: rgba(19, 31, 62, 0.85);
       border: 1px dashed var(--border);
       border-radius: 8px;
-      padding: 15px;
+      padding: 10px;
       text-align: center;
-      min-height: 400px;
+      min-height: 600px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       color: var(--text-dim);
       font-size: 0.85rem;
+      backdrop-filter: blur(5px);
+      box-sizing: border-box;
     }
 
     .ad-banner-side img {
-      max-width: 100%;
+      width: 100%;
+      max-width: 160px;
       height: auto;
       border-radius: 6px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
 
     .media-card {
       background-color: var(--card-bg);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 20px;
       position: relative;
       margin-bottom: 20px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+
+    .media-card h2 {
+      color: #ffffff;
+      margin-top: 0;
     }
 
     .video-container {
@@ -120,6 +144,7 @@
       border-radius: 8px;
       overflow: hidden;
       cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
     }
 
     .video-container video {
@@ -132,7 +157,7 @@
       pointer-events: none;
     }
 
-    /* Logo inamovible sobre el reproductor */
+    /* Logo fijo sobre el reproductor */
     .channel-logo-overlay {
       position: absolute;
       top: 15px;
@@ -142,7 +167,7 @@
       width: auto;
       opacity: 0.85;
       pointer-events: none;
-      filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.7));
+      filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.8));
     }
 
     .video-overlay-btn {
@@ -165,6 +190,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     }
 
     .btn-audio-toggle:hover, .btn-fullscreen-toggle:hover {
@@ -174,11 +200,12 @@
     .audio-container {
       margin-top: 15px;
       padding: 20px;
-      background-color: #000;
+      background-color: #060b18;
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      border: 1px solid var(--border);
     }
 
     .status-badge {
@@ -187,6 +214,7 @@
       padding: 4px 10px;
       border-radius: 12px;
       font-weight: bold;
+      color: #ffffff;
     }
 
     /* Estilos del panel de administración privado */
@@ -202,7 +230,8 @@
       justify-content: space-between;
       align-items: center;
       padding: 12px;
-      background: #2a2a2a;
+      background: #0b1329;
+      border: 1px solid var(--border);
       border-radius: 6px;
       word-break: break-all;
     }
@@ -218,14 +247,14 @@
     }
 
     .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; color: var(--text-dim); }
+    .form-group label { display: block; margin-bottom: 5px; color: #ffffff; font-weight: 500; }
     .form-group input {
       width: 100%;
       padding: 10px;
       border-radius: 6px;
       border: 1px solid var(--border);
-      background-color: #2a2a2a;
-      color: var(--text);
+      background-color: #0b1329;
+      color: #ffffff;
       box-sizing: border-box;
     }
 
@@ -238,6 +267,7 @@
       border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
     }
 
     .auth-card { max-width: 400px; margin: 40px auto; width: 100%; }
@@ -248,7 +278,7 @@
       gap: 20px; 
     }
 
-    @media (min-width: 768px) {
+    @media (min-width: 992px) {
       .admin-panel-content.authenticated { 
         display: grid; 
         grid-template-columns: 1fr 1fr; 
@@ -257,11 +287,20 @@
   </style>
 
   <script>
-    // Inicialización de la lista de IDs de Archive.org almacenada localmente en el navegador
+    // Configuración inicial de Archive.org almacenada localmente
     let archiveItems = JSON.parse(localStorage.getItem('coatetv_items')) || [
       'videoplayback-4_20260904',
       'nuevo-sitio-el-rosario_202609'
     ];
+
+    // URL Stream / MP3 para la Radio
+    let radioStreamUrl = localStorage.getItem('coateradio_url') || 'https://stream.zeno.fm/f3wvbbqmdg8uv';
+
+    // Configuración de las URLs de los Banners Publicitarios
+    let adBanners = JSON.parse(localStorage.getItem('coatetv_banners')) || {
+      left: 'https://via.placeholder.com/160x600/0b1329/ffffff?text=Anuncio+Izquierdo',
+      right: 'https://via.placeholder.com/160x600/0b1329/ffffff?text=Anuncio+Derecho'
+    };
 
     let playlist = [];
     let currentVideoIndex = 0;
@@ -287,10 +326,23 @@
       const btn = document.getElementById('tvAudioBtn');
       if (video.muted) {
         video.muted = false;
-        btn.textContent = '🔊 Silenciar';
+        btn.textContent = '🔊 Silenciar TV';
       } else {
         video.muted = true;
-        btn.textContent = '🔇 Activar Sonido';
+        btn.textContent = '🔇 Activar Sonido TV';
+      }
+    };
+
+    window.toggleRadioAudio = function(e) {
+      if(e) e.stopPropagation();
+      const radio = document.getElementById('radioPlayer');
+      const btn = document.getElementById('radioAudioBtn');
+      if (radio.muted) {
+        radio.muted = false;
+        btn.textContent = '🔊 Silenciar Radio';
+      } else {
+        radio.muted = true;
+        btn.textContent = '🔇 Activar Sonido Radio';
       }
     };
 
@@ -309,7 +361,6 @@
       }
     };
 
-    // Consulta la API de Archive.org para cada ID configurado
     async function loadTvPlaylist() {
       playlist = [];
       for (const itemId of archiveItems) {
@@ -336,6 +387,7 @@
       }
     }
 
+    // Sincronización continua en vivo basada en tiempo universal (Unix Timestamp)
     function syncTvStream() {
       if (playlist.length === 0) return;
       const totalPlaylistDuration = playlist.reduce((sum, item) => sum + item.duration, 0);
@@ -367,6 +419,19 @@
       }, { once: true });
     }
 
+    function syncRadioStream() {
+      const radio = document.getElementById('radioPlayer');
+      radio.src = radioStreamUrl;
+
+      radio.addEventListener('loadedmetadata', () => {
+        if (radio.duration && isFinite(radio.duration)) {
+          const nowInSeconds = Math.floor(Date.now() / 1000);
+          radio.currentTime = nowInSeconds % radio.duration;
+        }
+        radio.play().catch(() => {});
+      }, { once: true });
+    }
+
     function playNextVideo() {
       if (playlist.length === 0) return;
       currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
@@ -393,6 +458,11 @@
       `).join('');
     }
 
+    function updateBannerImages() {
+      document.getElementById('imgBannerLeft').src = adBanners.left;
+      document.getElementById('imgBannerRight').src = adBanners.right;
+    }
+
     window.removeArchiveItem = function(index) {
       if (!confirm('¿Deseas remover este ID de la programación?')) return;
       archiveItems.splice(index, 1);
@@ -411,7 +481,6 @@
       document.getElementById('authPass').value = '';
     };
 
-    // Extrae el ID del enlace si pegas la URL completa o solo el ID
     function extractArchiveId(input) {
       input = input.trim();
       if (input.includes('archive.org/details/')) {
@@ -423,6 +492,8 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       loadTvPlaylist();
+      syncRadioStream();
+      updateBannerImages();
 
       const tvPlayer = document.getElementById('tvPlayer');
       tvPlayer.addEventListener('ended', playNextVideo);
@@ -436,6 +507,12 @@
           const panel = document.getElementById('adminPanelContent');
           panel.style.display = 'grid';
           panel.classList.add('authenticated');
+          
+          // Cargar valores en formulario
+          document.getElementById('bannerLeftUrl').value = adBanners.left;
+          document.getElementById('bannerRightUrl').value = adBanners.right;
+          document.getElementById('radioUrlInput').value = radioStreamUrl;
+          
           renderAdminList();
         } else {
           alert('Usuario o contraseña incorrectos');
@@ -466,6 +543,30 @@
           alert('Este contenido ya está en la lista.');
         }
       });
+
+      // Formulario para actualizar la URL de la Radio
+      document.getElementById('updateRadioForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!isAdminAuthenticated) return;
+
+        radioStreamUrl = document.getElementById('radioUrlInput').value;
+        localStorage.setItem('coateradio_url', radioStreamUrl);
+        syncRadioStream();
+        document.getElementById('radioStatusMessage').textContent = '¡URL de la Radio actualizada!';
+      });
+
+      // Formulario para actualizar Banners Publicitarios
+      document.getElementById('updateBannersForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!isAdminAuthenticated) return;
+
+        adBanners.left = document.getElementById('bannerLeftUrl').value;
+        adBanners.right = document.getElementById('bannerRightUrl').value;
+
+        localStorage.setItem('coatetv_banners', JSON.stringify(adBanners));
+        updateBannerImages();
+        document.getElementById('bannerStatusMessage').textContent = '¡Banners actualizados con éxito!';
+      });
     });
   </script>
 </head>
@@ -484,8 +585,8 @@
       
       <!-- PUBLICIDAD IZQUIERDA -->
       <aside class="ad-banner-side">
-        <p>Espacio Publicitario</p>
-        <img src="https://via.placeholder.com/160x600?text=Tu+Anuncio+Aqui" alt="Publicidad Izquierda">
+        <p style="margin-bottom: 8px; font-weight: 600;">Publicidad</p>
+        <img id="imgBannerLeft" src="" alt="Publicidad Izquierda">
       </aside>
 
       <!-- REPRODUCTOR DE TV Y RADIO -->
@@ -499,7 +600,7 @@
             <img src="https://i.ibb.co/WrtpwB1/logo.png" alt="Logo Canal" class="channel-logo-overlay" />
             <video id="tvPlayer" autoplay muted playsinline></video>
             <div class="video-overlay-btn">
-              <button id="tvAudioBtn" class="btn-audio-toggle" onclick="toggleTvAudio(event)">🔇 Activar Sonido</button>
+              <button id="tvAudioBtn" class="btn-audio-toggle" onclick="toggleTvAudio(event)">🔇 Activar Sonido TV</button>
               <button class="btn-fullscreen-toggle" onclick="toggleFullscreen(event)">⛶ Expandir</button>
             </div>
           </div>
@@ -511,16 +612,17 @@
             <span class="status-badge" style="background:var(--success);">🔴 EN VIVO</span>
           </h2>
           <div class="audio-container">
-            <audio id="radioPlayer" autoplay muted></audio>
+            <audio id="radioPlayer" autoplay muted controlsList="nodownload"></audio>
             <span>Transmisión Digital en Vivo</span>
+            <button id="radioAudioBtn" class="btn-audio-toggle" onclick="toggleRadioAudio(event)">🔇 Activar Sonido Radio</button>
           </div>
         </section>
       </div>
 
       <!-- PUBLICIDAD DERECHA -->
       <aside class="ad-banner-side">
-        <p>Espacio Publicitario</p>
-        <img src="https://via.placeholder.com/160x600?text=Tu+Anuncio+Aqui" alt="Publicidad Derecha">
+        <p style="margin-bottom: 8px; font-weight: 600;">Publicidad</p>
+        <img id="imgBannerRight" src="" alt="Publicidad Derecha">
       </aside>
 
     </div>
@@ -541,7 +643,7 @@
     <!-- PANEL PRIVADO -->
     <div id="adminPanelContent" class="admin-panel-content">
       
-      <!-- SECCIÓN 1: AGREGAR CONTENIDO DE ARCHIVE.ORG -->
+      <!-- SECCIÓN 1: AGREGAR CONTENIDO DE ARCHIVE.ORG Y CONFIGURAR RADIO -->
       <section class="media-card">
         <h2>Agregar Contenido de Archive.org</h2>
         <form id="addVideoForm">
@@ -552,6 +654,38 @@
           <button type="submit" class="btn-submit">➕ Vincular a la Transmisión</button>
         </form>
         <p id="statusMessage" style="margin-top: 10px; color: var(--success); font-weight: bold;"></p>
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
+
+        <h2>Configuración de la Radio Stream</h2>
+        <form id="updateRadioForm">
+          <div class="form-group">
+            <label>URL de Stream de Radio (.mp3 / Icecast / Zeno)</label>
+            <input type="url" id="radioUrlInput" placeholder="https://stream.zeno.fm/..." required />
+          </div>
+          <button type="submit" class="btn-submit" style="background-color: #2ed573;">📻 Actualizar Radio</button>
+        </form>
+        <p id="radioStatusMessage" style="margin-top: 10px; color: var(--success); font-weight: bold;"></p>
+        
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
+
+        <!-- SECCIÓN DE BANNERS PUBLICITARIOS -->
+        <h2>Gestión de Banners Publicitarios</h2>
+        <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 15px;">
+          <strong>Medida recomendada:</strong> 160 x 600 px (Formato Skyscraper en vertical).
+        </p>
+        <form id="updateBannersForm">
+          <div class="form-group">
+            <label>URL Imagen Banner Izquierdo</label>
+            <input type="url" id="bannerLeftUrl" placeholder="https://ejemplo.com/banner-izq.jpg" required />
+          </div>
+          <div class="form-group">
+            <label>URL Imagen Banner Derecho</label>
+            <input type="url" id="bannerRightUrl" placeholder="https://ejemplo.com/banner-der.jpg" required />
+          </div>
+          <button type="submit" class="btn-submit" style="background-color: #2e86de;">🖼️ Guardar Banners</button>
+        </form>
+        <p id="bannerStatusMessage" style="margin-top: 10px; color: var(--success); font-weight: bold;"></p>
       </section>
 
       <!-- SECCIÓN 2: CONTROL DE ARCHIVOS CONFIGURADOS -->
