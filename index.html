@@ -79,7 +79,7 @@
 
     @media (min-width: 992px) {
       .main-tv-layout {
-        grid-template-columns: 160px 1fr 160px; /* Banners laterales en pantallas grandes */
+        grid-template-columns: 160px 1fr 160px;
       }
     }
 
@@ -132,7 +132,7 @@
       pointer-events: none;
     }
 
-    /* Logo fijo sobre el reproductor */
+    /* Logo inamovible sobre el reproductor */
     .channel-logo-overlay {
       position: absolute;
       top: 15px;
@@ -189,9 +189,7 @@
       font-weight: bold;
     }
 
-    /* Estilos del panel de administración */
-    #adminView { grid-template-columns: 1fr; gap: 20px; }
-    
+    /* Estilos del panel de administración privado */
     .playlist-admin-list {
       display: flex;
       flex-direction: column;
@@ -247,9 +245,19 @@
     }
 
     .auth-card { max-width: 400px; margin: 40px auto; width: 100%; }
-    .admin-panel-content { display: none; width: 100%; gap: 20px; }
+    
+    /* El panel privado permanece completamente oculto hasta autenticarse */
+    .admin-panel-content { 
+      display: none; 
+      width: 100%; 
+      gap: 20px; 
+    }
+
     @media (min-width: 768px) {
-      .admin-panel-content { display: grid; grid-template-columns: 1fr 1fr; }
+      .admin-panel-content.authenticated { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+      }
     }
   </style>
 
@@ -260,7 +268,6 @@
     const SUPABASE_KEY = 'sb_publishable_5tq4snjI8q4AfrbBYgzrVw_UfoZw9vA';
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Fallback inicial por si la BD aún está vacía
     let playlist = [
       { id: 1, title: "Don Juan", url: "https://ia801509.us.archive.org/21/items/videoplayback-4_20260904/Don%20Juan.mp4", duration: 180 },
       { id: 2, title: "Branding Blue", url: "https://ia801509.us.archive.org/21/items/videoplayback-4_20260904/Logo%20Branding%20Blue%20and%20White%20Modern%20Video.mp4", duration: 30 }
@@ -311,9 +318,8 @@
       }
     };
 
-    // Sincronización continua de señal 24/7
     async function loadTvPlaylist() {
-      const { data, error } = await supabase.from('tv_playlist').select('*').order('id', { ascending: true });
+      const { data } = await supabase.from('tv_playlist').select('*').order('id', { ascending: true });
       if (data && data.length > 0) {
         playlist = data;
       }
@@ -359,7 +365,6 @@
       player.play().catch(() => {});
     }
 
-    // Funciones del Panel Administrativo de Videos
     async function renderAdminPlaylist() {
       const container = document.getElementById('adminVideoList');
       const { data } = await supabase.from('tv_playlist').select('*').order('id', { ascending: true });
@@ -389,28 +394,42 @@
       syncTvStream();
     };
 
+    window.logoutAdmin = function() {
+      isAdminAuthenticated = false;
+      document.getElementById('authContainer').style.display = 'block';
+      const panel = document.getElementById('adminPanelContent');
+      panel.style.display = 'none';
+      panel.classList.remove('authenticated');
+      document.getElementById('authUser').value = '';
+      document.getElementById('authPass').value = '';
+    };
+
     window.addEventListener('DOMContentLoaded', () => {
       loadTvPlaylist();
 
       const tvPlayer = document.getElementById('tvPlayer');
       tvPlayer.addEventListener('ended', playNextVideo);
 
-      // Login Admin
+      // Autenticación de Administración
       document.getElementById('authForm').addEventListener('submit', (e) => {
         e.preventDefault();
         if (document.getElementById('authUser').value === 'admin' && document.getElementById('authPass').value === 'coatetv') {
           isAdminAuthenticated = true;
           document.getElementById('authContainer').style.display = 'none';
-          document.getElementById('adminPanelContent').style.display = 'grid';
+          const panel = document.getElementById('adminPanelContent');
+          panel.style.display = 'grid';
+          panel.classList.add('authenticated');
           renderAdminPlaylist();
         } else {
           alert('Usuario o contraseña incorrectos');
         }
       });
 
-      // Formulario Agregar Enlace de Video
+      // Formulario exclusivo del administrador para agregar videos
       document.getElementById('addVideoForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!isAdminAuthenticated) return;
+
         const title = document.getElementById('videoTitle').value;
         const url = document.getElementById('videoUrl').value;
         const duration = parseInt(document.getElementById('videoDuration').value);
@@ -423,7 +442,7 @@
         if (error) {
           status.textContent = 'Error: ' + error.message;
         } else {
-          status.textContent = '¡Video agregado exitosamente!';
+          status.textContent = '¡Video agregado exitosamente a la programación!';
           document.getElementById('videoTitle').value = '';
           document.getElementById('videoUrl').value = '';
           document.getElementById('videoDuration').value = '120';
@@ -447,26 +466,22 @@
   <main id="publicView" class="view-content active">
     <div class="main-tv-layout">
       
-      <!-- BANNER PUBLICIDAD IZQUIERDA -->
+      <!-- PUBLICIDAD IZQUIERDA -->
       <aside class="ad-banner-side">
         <p>Espacio Publicitario</p>
         <img src="https://via.placeholder.com/160x600?text=Tu+Anuncio+Aqui" alt="Publicidad Izquierda">
       </aside>
 
-      <!-- CONTENIDO CENTRAL -->
+      <!-- REPRODUCTOR DE TV Y RADIO -->
       <div>
-        <!-- SECCIÓN TV -->
         <section class="media-card">
           <h2 style="display: flex; justify-content: space-between; align-items: center;">
             Coate TV
             <span class="status-badge">🔴 EN VIVO 24/7</span>
           </h2>
           <div class="video-container" id="tvContainer" onclick="toggleFullscreen(event)">
-            <!-- LOGO FIJO SOBRE EL REPRODUCTOR -->
             <img src="https://i.ibb.co/WrtpwB1/logo.png" alt="Logo Canal" class="channel-logo-overlay" />
-            
             <video id="tvPlayer" autoplay muted playsinline></video>
-            
             <div class="video-overlay-btn">
               <button id="tvAudioBtn" class="btn-audio-toggle" onclick="toggleTvAudio(event)">🔇 Activar Sonido</button>
               <button class="btn-fullscreen-toggle" onclick="toggleFullscreen(event)">⛶ Expandir</button>
@@ -474,7 +489,6 @@
           </div>
         </section>
 
-        <!-- SECCIÓN RADIO -->
         <section class="media-card">
           <h2 style="display: flex; justify-content: space-between; align-items: center;">
             Emisora de Radio
@@ -487,7 +501,7 @@
         </section>
       </div>
 
-      <!-- BANNER PUBLICIDAD DERECHA -->
+      <!-- PUBLICIDAD DERECHA -->
       <aside class="ad-banner-side">
         <p>Espacio Publicitario</p>
         <img src="https://via.placeholder.com/160x600?text=Tu+Anuncio+Aqui" alt="Publicidad Derecha">
@@ -497,16 +511,21 @@
   </main>
 
   <main id="adminView" class="view-content">
+    <!-- Formulario de Login -->
     <div id="authContainer" class="media-card auth-card">
       <h2>Acceso Administrativo</h2>
+      <p style="color:var(--text-dim); font-size:0.9rem;">Ingresa tus credenciales para gestionar la programación del canal.</p>
       <form id="authForm">
         <div class="form-group"><label>Usuario</label><input type="text" id="authUser" required /></div>
         <div class="form-group"><label>Contraseña</label><input type="password" id="authPass" required /></div>
-        <button type="submit" class="btn-submit">Ingresar</button>
+        <button type="submit" class="btn-submit">Ingresar al Panel</button>
       </form>
     </div>
 
+    <!-- PANEL EXCLUSIVO Y PRIVADO PARA EL ADMINISTRADOR -->
     <div id="adminPanelContent" class="admin-panel-content">
+      
+      <!-- SECCIÓN 1: AGREGAR VIDEO POR ENLACE -->
       <section class="media-card">
         <h2>Agregar Video por Enlace</h2>
         <form id="addVideoForm">
@@ -515,7 +534,7 @@
             <input type="text" id="videoTitle" placeholder="Ej. Noticiero Estelar" required />
           </div>
           <div class="form-group">
-            <label>Enlace Directo del Video (.mp4 de Archive.org u otro)</label>
+            <label>Enlace Directo del Video (.mp4 de Archive.org u otro servidor)</label>
             <input type="url" id="videoUrl" placeholder="https://ia801509.us.archive.org/.../video.mp4" required />
           </div>
           <div class="form-group">
@@ -527,10 +546,15 @@
         <p id="statusMessage" style="margin-top: 10px; color: var(--text-dim);"></p>
       </section>
 
+      <!-- SECCIÓN 2: CONTROL Y GESTIÓN DE PROGRAMACIÓN -->
       <section class="media-card">
-        <h2>Programación del Canal</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>Programación Actual</h2>
+          <button onclick="logoutAdmin()" style="background:#444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Cerrar Sesión</button>
+        </div>
         <div id="adminVideoList" class="playlist-admin-list"></div>
       </section>
+
     </div>
   </main>
 
