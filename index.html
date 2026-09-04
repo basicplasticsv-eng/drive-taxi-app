@@ -19,7 +19,6 @@
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--bg-color);
-      /* Fondo Azul Marino Oscuro con líneas difuminadas rojas */
       background-image: 
         radial-gradient(circle at 20% 20%, rgba(255, 71, 87, 0.12) 0%, transparent 40%),
         radial-gradient(circle at 80% 80%, rgba(255, 71, 87, 0.12) 0%, transparent 40%),
@@ -82,7 +81,6 @@
       display: block;
     }
 
-    /* Layout principal con banners publicitarios */
     .main-tv-layout {
       display: grid;
       grid-template-columns: 1fr;
@@ -157,7 +155,6 @@
       pointer-events: none;
     }
 
-    /* Logo fijo sobre el reproductor */
     .channel-logo-overlay {
       position: absolute;
       top: 15px;
@@ -217,7 +214,6 @@
       color: #ffffff;
     }
 
-    /* Estilos del panel de administración privado */
     .playlist-admin-list {
       display: flex;
       flex-direction: column;
@@ -287,19 +283,16 @@
   </style>
 
   <script>
-    // Configuración inicial de Archive.org almacenada localmente
     let archiveItems = JSON.parse(localStorage.getItem('coatetv_items')) || [
-      'videoplayback-4_20260904',
-      'nuevo-sitio-el-rosario_202609'
+      'chris-isaak-wicked-game-live',
+      'america-you-can-do-magic_202609'
     ];
 
-    // URL Stream / MP3 para la Radio
-    let radioStreamUrl = localStorage.getItem('coateradio_url') || 'https://stream.zeno.fm/f3wvbbqmdg8uv';
+    let radioStreamUrl = localStorage.getItem('coateradio_url') || 'https://archive.org/details/audio_202609';
 
-    // Configuración de las URLs de los Banners Publicitarios
     let adBanners = JSON.parse(localStorage.getItem('coatetv_banners')) || {
-      left: 'https://via.placeholder.com/160x600/0b1329/ffffff?text=Anuncio+Izquierdo',
-      right: 'https://via.placeholder.com/160x600/0b1329/ffffff?text=Anuncio+Derecho'
+      left: '',
+      right: ''
     };
 
     let playlist = [];
@@ -339,6 +332,7 @@
       const btn = document.getElementById('radioAudioBtn');
       if (radio.muted) {
         radio.muted = false;
+        radio.play().catch(() => {});
         btn.textContent = '🔊 Silenciar Radio';
       } else {
         radio.muted = true;
@@ -378,7 +372,7 @@
             });
           }
         } catch (e) {
-          console.error('Error cargando item:', itemId, e);
+          console.error('Error cargando video:', itemId, e);
         }
       }
 
@@ -387,7 +381,6 @@
       }
     }
 
-    // Sincronización continua en vivo basada en tiempo universal (Unix Timestamp)
     function syncTvStream() {
       if (playlist.length === 0) return;
       const totalPlaylistDuration = playlist.reduce((sum, item) => sum + item.duration, 0);
@@ -419,9 +412,31 @@
       }, { once: true });
     }
 
-    function syncRadioStream() {
+    async function syncRadioStream() {
       const radio = document.getElementById('radioPlayer');
-      radio.src = radioStreamUrl;
+      if (!radioStreamUrl) return;
+
+      let directAudioUrl = radioStreamUrl;
+
+      // Autodetecta y convierte enlaces de Archive.org a stream MP3 directo
+      if (radioStreamUrl.includes('archive.org/details/')) {
+        const itemId = extractArchiveId(radioStreamUrl);
+        try {
+          const res = await fetch(`https://archive.org/metadata/${itemId}`);
+          const data = await res.json();
+          if (data && data.files) {
+            const mp3File = data.files.find(f => f.format === 'VBR MP3' || f.name.endsWith('.mp3'));
+            if (mp3File) {
+              directAudioUrl = `https://${data.server}${data.dir}/${mp3File.name}`;
+            }
+          }
+        } catch (e) {
+          console.error('Error procesando audio de Archive.org:', e);
+        }
+      }
+
+      radio.src = directAudioUrl;
+      radio.load();
 
       radio.addEventListener('loadedmetadata', () => {
         if (radio.duration && isFinite(radio.duration)) {
@@ -459,8 +474,11 @@
     }
 
     function updateBannerImages() {
-      document.getElementById('imgBannerLeft').src = adBanners.left;
-      document.getElementById('imgBannerRight').src = adBanners.right;
+      const imgLeft = document.getElementById('imgBannerLeft');
+      const imgRight = document.getElementById('imgBannerRight');
+
+      if (adBanners.left) imgLeft.src = adBanners.left;
+      if (adBanners.right) imgRight.src = adBanners.right;
     }
 
     window.removeArchiveItem = function(index) {
@@ -498,7 +516,15 @@
       const tvPlayer = document.getElementById('tvPlayer');
       tvPlayer.addEventListener('ended', playNextVideo);
 
-      // Autenticación de Administración
+      // Desbloquea el audio de la radio en la primera interacción del usuario
+      document.addEventListener('click', () => {
+        const radio = document.getElementById('radioPlayer');
+        if (radio && radio.paused) {
+          radio.play().catch(() => {});
+        }
+      }, { once: true });
+
+      // Autenticación Admin
       document.getElementById('authForm').addEventListener('submit', (e) => {
         e.preventDefault();
         if (document.getElementById('authUser').value === 'admin' && document.getElementById('authPass').value === 'coatetv') {
@@ -508,7 +534,6 @@
           panel.style.display = 'grid';
           panel.classList.add('authenticated');
           
-          // Cargar valores en formulario
           document.getElementById('bannerLeftUrl').value = adBanners.left;
           document.getElementById('bannerRightUrl').value = adBanners.right;
           document.getElementById('radioUrlInput').value = radioStreamUrl;
@@ -519,7 +544,7 @@
         }
       });
 
-      // Formulario para agregar publicaciones de Archive.org
+      // Agregar Videos
       document.getElementById('addVideoForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!isAdminAuthenticated) return;
@@ -544,7 +569,7 @@
         }
       });
 
-      // Formulario para actualizar la URL de la Radio
+      // Actualizar Radio
       document.getElementById('updateRadioForm').addEventListener('submit', (e) => {
         e.preventDefault();
         if (!isAdminAuthenticated) return;
@@ -555,7 +580,7 @@
         document.getElementById('radioStatusMessage').textContent = '¡URL de la Radio actualizada!';
       });
 
-      // Formulario para actualizar Banners Publicitarios
+      // Actualizar Banners
       document.getElementById('updateBannersForm').addEventListener('submit', (e) => {
         e.preventDefault();
         if (!isAdminAuthenticated) return;
@@ -583,13 +608,13 @@
   <main id="publicView" class="view-content active">
     <div class="main-tv-layout">
       
-      <!-- PUBLICIDAD IZQUIERDA -->
+      <!-- BANNERS IZQUIERDO -->
       <aside class="ad-banner-side">
         <p style="margin-bottom: 8px; font-weight: 600;">Publicidad</p>
-        <img id="imgBannerLeft" src="" alt="Publicidad Izquierda">
+        <img id="imgBannerLeft" src="https://via.placeholder.com/160x600/0b1329/ffffff?text=Publicidad" alt="Publicidad Izquierda">
       </aside>
 
-      <!-- REPRODUCTOR DE TV Y RADIO -->
+      <!-- SECCIÓN TV Y RADIO -->
       <div>
         <section class="media-card">
           <h2 style="display: flex; justify-content: space-between; align-items: center;">
@@ -619,17 +644,16 @@
         </section>
       </div>
 
-      <!-- PUBLICIDAD DERECHA -->
+      <!-- BANNERS DERECHO -->
       <aside class="ad-banner-side">
         <p style="margin-bottom: 8px; font-weight: 600;">Publicidad</p>
-        <img id="imgBannerRight" src="" alt="Publicidad Derecha">
+        <img id="imgBannerRight" src="https://via.placeholder.com/160x600/0b1329/ffffff?text=Publicidad" alt="Publicidad Derecha">
       </aside>
 
     </div>
   </main>
 
   <main id="adminView" class="view-content">
-    <!-- Formulario de Login -->
     <div id="authContainer" class="media-card auth-card">
       <h2>Acceso Administrativo</h2>
       <p style="color:var(--text-dim); font-size:0.9rem;">Ingresa tus credenciales para administrar el contenido.</p>
@@ -640,18 +664,16 @@
       </form>
     </div>
 
-    <!-- PANEL PRIVADO -->
     <div id="adminPanelContent" class="admin-panel-content">
       
-      <!-- SECCIÓN 1: AGREGAR CONTENIDO DE ARCHIVE.ORG Y CONFIGURAR RADIO -->
       <section class="media-card">
-        <h2>Agregar Contenido de Archive.org</h2>
+        <h2>Agregar Contenido TV (Archive.org)</h2>
         <form id="addVideoForm">
           <div class="form-group">
             <label>Enlace o ID del item de Archive.org</label>
             <input type="text" id="archiveInput" placeholder="Ej: https://archive.org/details/nuevo-sitio-el-rosario_202609" required />
           </div>
-          <button type="submit" class="btn-submit">➕ Vincular a la Transmisión</button>
+          <button type="submit" class="btn-submit">➕ Vincular a la TV</button>
         </form>
         <p id="statusMessage" style="margin-top: 10px; color: var(--success); font-weight: bold;"></p>
 
@@ -660,8 +682,8 @@
         <h2>Configuración de la Radio Stream</h2>
         <form id="updateRadioForm">
           <div class="form-group">
-            <label>URL de Stream de Radio (.mp3 / Icecast / Zeno)</label>
-            <input type="url" id="radioUrlInput" placeholder="https://stream.zeno.fm/..." required />
+            <label>URL de Stream o Enlace Archive.org</label>
+            <input type="url" id="radioUrlInput" placeholder="Ej: https://archive.org/details/audio_202609" required />
           </div>
           <button type="submit" class="btn-submit" style="background-color: #2ed573;">📻 Actualizar Radio</button>
         </form>
@@ -669,29 +691,24 @@
         
         <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
 
-        <!-- SECCIÓN DE BANNERS PUBLICITARIOS -->
         <h2>Gestión de Banners Publicitarios</h2>
-        <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 15px;">
-          <strong>Medida recomendada:</strong> 160 x 600 px (Formato Skyscraper en vertical).
-        </p>
         <form id="updateBannersForm">
           <div class="form-group">
             <label>URL Imagen Banner Izquierdo</label>
-            <input type="url" id="bannerLeftUrl" placeholder="https://ejemplo.com/banner-izq.jpg" required />
+            <input type="url" id="bannerLeftUrl" placeholder="https://..." required />
           </div>
           <div class="form-group">
             <label>URL Imagen Banner Derecho</label>
-            <input type="url" id="bannerRightUrl" placeholder="https://ejemplo.com/banner-der.jpg" required />
+            <input type="url" id="bannerRightUrl" placeholder="https://..." required />
           </div>
           <button type="submit" class="btn-submit" style="background-color: #2e86de;">🖼️ Guardar Banners</button>
         </form>
         <p id="bannerStatusMessage" style="margin-top: 10px; color: var(--success); font-weight: bold;"></p>
       </section>
 
-      <!-- SECCIÓN 2: CONTROL DE ARCHIVOS CONFIGURADOS -->
       <section class="media-card">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <h2>Publicaciones Vinculadas</h2>
+          <h2>Publicaciones Vinculadas TV</h2>
           <button onclick="logoutAdmin()" style="background:#444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Cerrar Sesión</button>
         </div>
         <div id="adminVideoList" class="playlist-admin-list"></div>
