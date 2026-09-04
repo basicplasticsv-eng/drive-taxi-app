@@ -72,7 +72,7 @@
 
     .view-content {
       display: none;
-      padding: 20px;
+      padding: 15px;
       max-width: 1400px;
       margin: 0 auto;
     }
@@ -81,16 +81,18 @@
       display: block;
     }
 
+    /* Layout Adaptable a Móviles */
     .main-tv-layout {
-      display: grid;
-      grid-template-columns: 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 20px;
-      align-items: start;
     }
 
     @media (min-width: 992px) {
       .main-tv-layout {
+        display: grid;
         grid-template-columns: 160px 1fr 160px;
+        align-items: start;
       }
     }
 
@@ -100,7 +102,6 @@
       border-radius: 8px;
       padding: 10px;
       text-align: center;
-      min-height: 600px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -109,14 +110,27 @@
       font-size: 0.85rem;
       backdrop-filter: blur(5px);
       box-sizing: border-box;
+      width: 100%;
+    }
+
+    @media (min-width: 992px) {
+      .ad-banner-side {
+        min-height: 600px;
+      }
     }
 
     .ad-banner-side img {
       width: 100%;
-      max-width: 160px;
+      max-width: 320px;
       height: auto;
       border-radius: 6px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    @media (min-width: 992px) {
+      .ad-banner-side img {
+        max-width: 160px;
+      }
     }
 
     .media-card {
@@ -160,11 +174,15 @@
       top: 15px;
       right: 15px;
       z-index: 10;
-      height: 45px;
+      height: 35px;
       width: auto;
       opacity: 0.85;
       pointer-events: none;
       filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.8));
+    }
+
+    @media (min-width: 768px) {
+      .channel-logo-overlay { height: 45px; }
     }
 
     .video-overlay-btn {
@@ -180,29 +198,35 @@
       background-color: var(--accent);
       color: white;
       border: none;
-      padding: 10px 16px;
+      padding: 8px 14px;
       border-radius: 20px;
       font-weight: bold;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      font-size: 0.85rem;
       box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    }
-
-    .btn-audio-toggle:hover, .btn-fullscreen-toggle:hover {
-      background-color: var(--accent-hover);
     }
 
     .audio-container {
       margin-top: 15px;
-      padding: 20px;
+      padding: 15px;
       background-color: #060b18;
       border-radius: 8px;
       display: flex;
+      flex-direction: column;
+      gap: 10px;
       align-items: center;
       justify-content: space-between;
       border: 1px solid var(--border);
+    }
+
+    @media (min-width: 600px) {
+      .audio-container {
+        flex-direction: row;
+        padding: 20px;
+      }
     }
 
     .status-badge {
@@ -384,6 +408,8 @@
     function syncTvStream() {
       if (playlist.length === 0) return;
       const totalPlaylistDuration = playlist.reduce((sum, item) => sum + item.duration, 0);
+      if (totalPlaylistDuration === 0) return;
+
       const nowInSeconds = Math.floor(Date.now() / 1000);
       let currentPositionInCycle = nowInSeconds % totalPlaylistDuration;
       
@@ -402,14 +428,17 @@
 
       currentVideoIndex = targetIndex;
       const player = document.getElementById('tvPlayer');
-      player.src = playlist[currentVideoIndex].url;
+      
+      if (!player.src.includes(playlist[currentVideoIndex].url)) {
+        player.src = playlist[currentVideoIndex].url;
+      }
 
-      player.addEventListener('loadedmetadata', () => {
-        if (targetTimeOffset < player.duration) {
+      player.onloadedmetadata = () => {
+        if (Math.abs(player.currentTime - targetTimeOffset) > 2) {
           player.currentTime = targetTimeOffset;
         }
         player.play().catch(() => {});
-      }, { once: true });
+      };
     }
 
     async function syncRadioStream() {
@@ -418,7 +447,6 @@
 
       let directAudioUrl = radioStreamUrl;
 
-      // Autodetecta y convierte enlaces de Archive.org a stream MP3 directo
       if (radioStreamUrl.includes('archive.org/details/')) {
         const itemId = extractArchiveId(radioStreamUrl);
         try {
@@ -516,7 +544,6 @@
       const tvPlayer = document.getElementById('tvPlayer');
       tvPlayer.addEventListener('ended', playNextVideo);
 
-      // Desbloquea el audio de la radio en la primera interacción del usuario
       document.addEventListener('click', () => {
         const radio = document.getElementById('radioPlayer');
         if (radio && radio.paused) {
@@ -524,7 +551,6 @@
         }
       }, { once: true });
 
-      // Autenticación Admin
       document.getElementById('authForm').addEventListener('submit', (e) => {
         e.preventDefault();
         if (document.getElementById('authUser').value === 'admin' && document.getElementById('authPass').value === 'coatetv') {
@@ -544,7 +570,6 @@
         }
       });
 
-      // Agregar Videos
       document.getElementById('addVideoForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!isAdminAuthenticated) return;
@@ -569,7 +594,6 @@
         }
       });
 
-      // Actualizar Radio
       document.getElementById('updateRadioForm').addEventListener('submit', (e) => {
         e.preventDefault();
         if (!isAdminAuthenticated) return;
@@ -580,7 +604,6 @@
         document.getElementById('radioStatusMessage').textContent = '¡URL de la Radio actualizada!';
       });
 
-      // Actualizar Banners
       document.getElementById('updateBannersForm').addEventListener('submit', (e) => {
         e.preventDefault();
         if (!isAdminAuthenticated) return;
@@ -608,10 +631,10 @@
   <main id="publicView" class="view-content active">
     <div class="main-tv-layout">
       
-      <!-- BANNERS IZQUIERDO -->
+      <!-- PUBLICIDAD SUPERIOR / IZQUIERDA -->
       <aside class="ad-banner-side">
         <p style="margin-bottom: 8px; font-weight: 600;">Publicidad</p>
-        <img id="imgBannerLeft" src="https://via.placeholder.com/160x600/0b1329/ffffff?text=Publicidad" alt="Publicidad Izquierda">
+        <img id="imgBannerLeft" src="https://via.placeholder.com/300x250/0b1329/ffffff?text=Publicidad+1" alt="Publicidad Izquierda">
       </aside>
 
       <!-- SECCIÓN TV Y RADIO -->
@@ -644,10 +667,10 @@
         </section>
       </div>
 
-      <!-- BANNERS DERECHO -->
+      <!-- PUBLICIDAD INFERIOR / DERECHA -->
       <aside class="ad-banner-side">
         <p style="margin-bottom: 8px; font-weight: 600;">Publicidad</p>
-        <img id="imgBannerRight" src="https://via.placeholder.com/160x600/0b1329/ffffff?text=Publicidad" alt="Publicidad Derecha">
+        <img id="imgBannerRight" src="https://via.placeholder.com/300x250/0b1329/ffffff?text=Publicidad+2" alt="Publicidad Derecha">
       </aside>
 
     </div>
@@ -694,11 +717,11 @@
         <h2>Gestión de Banners Publicitarios</h2>
         <form id="updateBannersForm">
           <div class="form-group">
-            <label>URL Imagen Banner Izquierdo</label>
+            <label>URL Imagen Banner Izquierdo / Superior</label>
             <input type="url" id="bannerLeftUrl" placeholder="https://..." required />
           </div>
           <div class="form-group">
-            <label>URL Imagen Banner Derecho</label>
+            <label>URL Imagen Banner Derecho / Inferior</label>
             <input type="url" id="bannerRightUrl" placeholder="https://..." required />
           </div>
           <button type="submit" class="btn-submit" style="background-color: #2e86de;">🖼️ Guardar Banners</button>
