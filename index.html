@@ -39,10 +39,34 @@
       color: var(--accent);
     }
 
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
     .view-content {
+      display: none;
       padding: 20px;
       max-width: 1400px;
       margin: 0 auto;
+    }
+
+    .view-content.active {
+      display: block;
     }
 
     /* Layout principal con banners publicitarios a los lados */
@@ -108,7 +132,7 @@
       pointer-events: none;
     }
 
-    /* Logo fijo sobre el reproductor */
+    /* Logo inamovible sobre el reproductor */
     .channel-logo-overlay {
       position: absolute;
       top: 15px;
@@ -165,19 +189,97 @@
       font-weight: bold;
     }
 
-    .playlist-info {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      color: var(--text-dim);
+    /* Estilos del panel de administración privado */
+    .playlist-admin-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .playlist-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #2a2a2a;
+      border-radius: 6px;
+      word-break: break-all;
+    }
+
+    .btn-delete {
+      background-color: #ff3838;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; color: var(--text-dim); }
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background-color: #2a2a2a;
+      color: var(--text);
+      box-sizing: border-box;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      background-color: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .auth-card { max-width: 400px; margin: 40px auto; width: 100%; }
+    
+    .admin-panel-content { 
+      display: none; 
+      width: 100%; 
+      gap: 20px; 
+    }
+
+    @media (min-width: 768px) {
+      .admin-panel-content.authenticated { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+      }
     }
   </style>
 
   <script>
-    // Identificador de tu Item/Carpeta de Archive.org
-    const ARCHIVE_ITEM_ID = 'videoplayback-4_20260904'; 
+    // Inicialización de la lista de IDs de Archive.org almacenada localmente en el navegador
+    let archiveItems = JSON.parse(localStorage.getItem('coatetv_items')) || [
+      'videoplayback-4_20260904',
+      'nuevo-sitio-el-rosario_202609'
+    ];
 
     let playlist = [];
     let currentVideoIndex = 0;
+    let isAdminAuthenticated = false;
+
+    window.switchTab = function(tabName) {
+      document.querySelectorAll('.view-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+      if(tabName === 'public') {
+        document.getElementById('publicView').classList.add('active');
+        document.getElementById('tabPublic').classList.add('active');
+      } else {
+        document.getElementById('adminView').classList.add('active');
+        document.getElementById('tabAdmin').classList.add('active');
+        if (isAdminAuthenticated) renderAdminList();
+      }
+    };
 
     window.toggleTvAudio = function(e) {
       if(e) e.stopPropagation();
@@ -207,41 +309,35 @@
       }
     };
 
-    // Obtener los videos automáticamente desde la API de Archive.org
-    async function fetchArchivePlaylist() {
-      try {
-        const response = await fetch(`https://archive.org/metadata/${ARCHIVE_ITEM_ID}`);
-        const data = await response.json();
-        
-        if (data && data.files) {
-          const server = data.server;
-          const dir = data.dir;
-
-          // Filtra solo los archivos de video formato MP4
-          playlist = data.files
-            .filter(file => file.format === 'MPEG4' || file.name.endsWith('.mp4'))
-            .map(file => ({
-              title: file.title || file.name,
-              url: `https://${server}${dir}/${file.name}`,
-              duration: parseFloat(file.length) || 120
-            }));
-
-          if (playlist.length > 0) {
-            document.getElementById('playlistCount').textContent = `Videos cargados desde Archive.org: ${playlist.length}`;
-            syncTvStream();
-          } else {
-            document.getElementById('playlistCount').textContent = 'No se encontraron videos .mp4 en la carpeta de Archive.org.';
+    // Consulta la API de Archive.org para cada ID configurado
+    async function loadTvPlaylist() {
+      playlist = [];
+      for (const itemId of archiveItems) {
+        try {
+          const res = await fetch(`https://archive.org/metadata/${itemId}`);
+          const data = await res.json();
+          if (data && data.files) {
+            const mp4Files = data.files.filter(f => f.format === 'MPEG4' || f.name.endsWith('.mp4'));
+            mp4Files.forEach(file => {
+              playlist.push({
+                title: file.title || file.name,
+                url: `https://${data.server}${data.dir}/${file.name}`,
+                duration: parseFloat(file.length) || 120
+              });
+            });
           }
+        } catch (e) {
+          console.error('Error cargando item:', itemId, e);
         }
-      } catch (err) {
-        console.error('Error leyendo Archive.org:', err);
-        document.getElementById('playlistCount').textContent = 'Error al conectar con Archive.org.';
+      }
+
+      if (playlist.length > 0) {
+        syncTvStream();
       }
     }
 
     function syncTvStream() {
       if (playlist.length === 0) return;
-
       const totalPlaylistDuration = playlist.reduce((sum, item) => sum + item.duration, 0);
       const nowInSeconds = Math.floor(Date.now() / 1000);
       let currentPositionInCycle = nowInSeconds % totalPlaylistDuration;
@@ -279,11 +375,97 @@
       player.play().catch(() => {});
     }
 
+    function renderAdminList() {
+      const container = document.getElementById('adminVideoList');
+      if (archiveItems.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-dim)">No hay publicaciones de Archive.org agregadas.</p>';
+        return;
+      }
+
+      container.innerHTML = archiveItems.map((item, index) => `
+        <div class="playlist-item">
+          <div>
+            <strong>📂 ID: ${item}</strong><br>
+            <small style="color:var(--text-dim)">🔗 https://archive.org/details/${item}</small>
+          </div>
+          <button class="btn-delete" onclick="removeArchiveItem(${index})">🗑 Eliminar</button>
+        </div>
+      `).join('');
+    }
+
+    window.removeArchiveItem = function(index) {
+      if (!confirm('¿Deseas remover este ID de la programación?')) return;
+      archiveItems.splice(index, 1);
+      localStorage.setItem('coatetv_items', JSON.stringify(archiveItems));
+      renderAdminList();
+      loadTvPlaylist();
+    };
+
+    window.logoutAdmin = function() {
+      isAdminAuthenticated = false;
+      document.getElementById('authContainer').style.display = 'block';
+      const panel = document.getElementById('adminPanelContent');
+      panel.style.display = 'none';
+      panel.classList.remove('authenticated');
+      document.getElementById('authUser').value = '';
+      document.getElementById('authPass').value = '';
+    };
+
+    // Extrae el ID del enlace si pegas la URL completa o solo el ID
+    function extractArchiveId(input) {
+      input = input.trim();
+      if (input.includes('archive.org/details/')) {
+        const parts = input.split('archive.org/details/');
+        return parts[1].split('/')[0].split('?')[0];
+      }
+      return input;
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
-      fetchArchivePlaylist();
+      loadTvPlaylist();
 
       const tvPlayer = document.getElementById('tvPlayer');
       tvPlayer.addEventListener('ended', playNextVideo);
+
+      // Autenticación de Administración
+      document.getElementById('authForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (document.getElementById('authUser').value === 'admin' && document.getElementById('authPass').value === 'coatetv') {
+          isAdminAuthenticated = true;
+          document.getElementById('authContainer').style.display = 'none';
+          const panel = document.getElementById('adminPanelContent');
+          panel.style.display = 'grid';
+          panel.classList.add('authenticated');
+          renderAdminList();
+        } else {
+          alert('Usuario o contraseña incorrectos');
+        }
+      });
+
+      // Formulario para agregar publicaciones de Archive.org
+      document.getElementById('addVideoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!isAdminAuthenticated) return;
+
+        const rawInput = document.getElementById('archiveInput').value;
+        const itemId = extractArchiveId(rawInput);
+
+        if (!itemId) {
+          alert('Ingresa una URL o un ID válido de Archive.org');
+          return;
+        }
+
+        if (!archiveItems.includes(itemId)) {
+          archiveItems.push(itemId);
+          localStorage.setItem('coatetv_items', JSON.stringify(archiveItems));
+          document.getElementById('statusMessage').textContent = '¡Cargado con éxito!';
+          document.getElementById('archiveInput').value = '';
+          renderAdminList();
+          await loadTvPlaylist();
+        } else {
+          alert('Este contenido ya está en la lista.');
+        }
+      });
     });
   </script>
 </head>
@@ -291,9 +473,13 @@
 
   <nav>
     <div class="logo">CoateTV & Radio Digital</div>
+    <div class="nav-tabs">
+      <button id="tabPublic" class="tab-btn active" onclick="switchTab('public')">📺 Señal en Vivo</button>
+      <button id="tabAdmin" class="tab-btn" onclick="switchTab('admin')">🔒 Admin Panel</button>
+    </div>
   </nav>
 
-  <main class="view-content">
+  <main id="publicView" class="view-content active">
     <div class="main-tv-layout">
       
       <!-- PUBLICIDAD IZQUIERDA -->
@@ -310,17 +496,13 @@
             <span class="status-badge">🔴 EN VIVO 24/7</span>
           </h2>
           <div class="video-container" id="tvContainer" onclick="toggleFullscreen(event)">
-            <!-- LOGO FIJO EN PANTALLA -->
             <img src="https://i.ibb.co/WrtpwB1/logo.png" alt="Logo Canal" class="channel-logo-overlay" />
-            
             <video id="tvPlayer" autoplay muted playsinline></video>
-            
             <div class="video-overlay-btn">
               <button id="tvAudioBtn" class="btn-audio-toggle" onclick="toggleTvAudio(event)">🔇 Activar Sonido</button>
               <button class="btn-fullscreen-toggle" onclick="toggleFullscreen(event)">⛶ Expandir</button>
             </div>
           </div>
-          <div id="playlistCount" class="playlist-info">Conectando con Archive.org...</div>
         </section>
 
         <section class="media-card">
@@ -340,6 +522,46 @@
         <p>Espacio Publicitario</p>
         <img src="https://via.placeholder.com/160x600?text=Tu+Anuncio+Aqui" alt="Publicidad Derecha">
       </aside>
+
+    </div>
+  </main>
+
+  <main id="adminView" class="view-content">
+    <!-- Formulario de Login -->
+    <div id="authContainer" class="media-card auth-card">
+      <h2>Acceso Administrativo</h2>
+      <p style="color:var(--text-dim); font-size:0.9rem;">Ingresa tus credenciales para administrar el contenido.</p>
+      <form id="authForm">
+        <div class="form-group"><label>Usuario</label><input type="text" id="authUser" required /></div>
+        <div class="form-group"><label>Contraseña</label><input type="password" id="authPass" required /></div>
+        <button type="submit" class="btn-submit">Ingresar al Panel</button>
+      </form>
+    </div>
+
+    <!-- PANEL PRIVADO -->
+    <div id="adminPanelContent" class="admin-panel-content">
+      
+      <!-- SECCIÓN 1: AGREGAR CONTENIDO DE ARCHIVE.ORG -->
+      <section class="media-card">
+        <h2>Agregar Contenido de Archive.org</h2>
+        <form id="addVideoForm">
+          <div class="form-group">
+            <label>Enlace o ID del item de Archive.org</label>
+            <input type="text" id="archiveInput" placeholder="Ej: https://archive.org/details/nuevo-sitio-el-rosario_202609" required />
+          </div>
+          <button type="submit" class="btn-submit">➕ Vincular a la Transmisión</button>
+        </form>
+        <p id="statusMessage" style="margin-top: 10px; color: var(--success); font-weight: bold;"></p>
+      </section>
+
+      <!-- SECCIÓN 2: CONTROL DE ARCHIVOS CONFIGURADOS -->
+      <section class="media-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>Publicaciones Vinculadas</h2>
+          <button onclick="logoutAdmin()" style="background:#444; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Cerrar Sesión</button>
+        </div>
+        <div id="adminVideoList" class="playlist-admin-list"></div>
+      </section>
 
     </div>
   </main>
