@@ -92,9 +92,9 @@
       background-color: #000;
       border-radius: 8px;
       overflow: hidden;
+      cursor: pointer; /* Indica que se puede tocar/hacer clic */
     }
 
-    /* Video sin controles ni interacciones directas */
     .video-container video {
       position: absolute;
       top: 0;
@@ -105,17 +105,45 @@
       pointer-events: none;
     }
 
-    /* Logo / Marca de agua en la esquina (Canal TV) */
+    /* Logo / Marca de agua en la esquina */
     .channel-logo-overlay {
       position: absolute;
       top: 15px;
       right: 15px;
       z-index: 10;
-      height: 45px; /* Tamaño sutil */
+      height: 45px;
       width: auto;
-      opacity: 0.85; /* Ligera transparencia profesional */
+      opacity: 0.85;
       pointer-events: none;
       filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.7));
+    }
+
+    /* Botones flotantes sobre el video */
+    .video-overlay-btn {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-audio-toggle, .btn-fullscreen-toggle {
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .btn-audio-toggle:hover, .btn-fullscreen-toggle:hover {
+      background-color: var(--accent-hover);
     }
 
     .audio-container {
@@ -135,31 +163,6 @@
       border-radius: 12px;
       font-weight: bold;
       letter-spacing: 1px;
-    }
-
-    .btn-audio-toggle {
-      background-color: var(--accent);
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 20px;
-      font-weight: bold;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: background 0.2s;
-    }
-
-    .btn-audio-toggle:hover {
-      background-color: var(--accent-hover);
-    }
-
-    .video-overlay-btn {
-      position: absolute;
-      bottom: 15px;
-      right: 15px;
-      z-index: 10;
     }
 
     #adminView { grid-template-columns: 1fr; gap: 20px; }
@@ -213,7 +216,6 @@
 
     const archiveBaseUrl = 'https://ia801509.us.archive.org/21/items/videoplayback-4_20260904/';
     
-    // Lista de videos con duraciones estimadas
     const playlist = [
       { url: archiveBaseUrl + 'Don%20Juan.mp4', duration: 180 },
       { url: archiveBaseUrl + 'Logo%20Branding%20Blue%20and%20White%20Modern%20Video.mp4', duration: 30 },
@@ -243,7 +245,8 @@
       }
     };
 
-    window.toggleTvAudio = function() {
+    window.toggleTvAudio = function(e) {
+      if(e) e.stopPropagation(); // Evita que se active la pantalla completa al tocar el botón de sonido
       const video = document.getElementById('tvPlayer');
       const btn = document.getElementById('tvAudioBtn');
       if (video.muted) {
@@ -252,6 +255,28 @@
       } else {
         video.muted = true;
         btn.textContent = '🔇 Activar Sonido';
+      }
+    };
+
+    window.toggleFullscreen = function(e) {
+      if(e) e.stopPropagation();
+      const container = document.getElementById('tvContainer');
+      const video = document.getElementById('tvPlayer');
+
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (container.requestFullscreen) {
+          container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) { /* Safari / iOS */
+          container.webkitRequestFullscreen();
+        } else if (video.webkitEnterFullscreen) { /* iOS Video */
+          video.webkitEnterFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
       }
     };
 
@@ -270,7 +295,6 @@
       }
     };
 
-    // Sincronización continua de señal (Transmisión 24/7 en vivo)
     function syncTvStream() {
       const nowInSeconds = Math.floor(Date.now() / 1000);
       let currentPositionInCycle = nowInSeconds % totalPlaylistDuration;
@@ -430,13 +454,15 @@
         Coate TV
         <span class="status-badge">🔴 EN VIVO 24/7</span>
       </h2>
-      <div class="video-container">
-        <!-- Logo / Marca de Agua del Canal -->
+      <div class="video-container" id="tvContainer" onclick="toggleFullscreen(event)">
+        <!-- Logo del Canal en pantalla -->
         <img src="https://i.ibb.co/WrtpwB1/logo.png" alt="Logo Canal" class="channel-logo-overlay" />
         
         <video id="tvPlayer" autoplay muted playsinline></video>
+        
         <div class="video-overlay-btn">
-          <button id="tvAudioBtn" class="btn-audio-toggle" onclick="toggleTvAudio()">🔇 Activar Sonido</button>
+          <button id="tvAudioBtn" class="btn-audio-toggle" onclick="toggleTvAudio(event)">🔇 Activar Sonido</button>
+          <button class="btn-fullscreen-toggle" onclick="toggleFullscreen(event)">⛶ Expandir</button>
         </div>
       </div>
     </section>
