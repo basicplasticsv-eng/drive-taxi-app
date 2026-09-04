@@ -94,7 +94,7 @@
       overflow: hidden;
     }
 
-    /* Video sin barra de navegación ni controles mouse */
+    /* Video sin controles ni interacciones directas */
     .video-container video {
       position: absolute;
       top: 0;
@@ -102,7 +102,20 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      pointer-events: none; /* Bloquea interacciones con el mouse sobre el video */
+      pointer-events: none;
+    }
+
+    /* Logo / Marca de agua en la esquina (Canal TV) */
+    .channel-logo-overlay {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 10;
+      height: 45px; /* Tamaño sutil */
+      width: auto;
+      opacity: 0.85; /* Ligera transparencia profesional */
+      pointer-events: none;
+      filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.7));
     }
 
     .audio-container {
@@ -200,16 +213,17 @@
 
     const archiveBaseUrl = 'https://ia801509.us.archive.org/21/items/videoplayback-4_20260904/';
     
-    // Lista de videos en la carpeta de Archive
-    const archivePlaylist = [
-      'Don%20Juan.mp4',
-      'Logo%20Branding%20Blue%20and%20White%20Modern%20Video.mp4',
-      'NUevo%20Sitio%20el%20Rosario.mp4',
-      'Sade%20-%20Smooth%20Operator%20-%20Official%20-%201984.mp4',
-      'videoplayback%20%284%29.mp4'
+    // Lista de videos con duraciones estimadas
+    const playlist = [
+      { url: archiveBaseUrl + 'Don%20Juan.mp4', duration: 180 },
+      { url: archiveBaseUrl + 'Logo%20Branding%20Blue%20and%20White%20Modern%20Video.mp4', duration: 30 },
+      { url: archiveBaseUrl + 'NUevo%20Sitio%20el%20Rosario.mp4', duration: 120 },
+      { url: archiveBaseUrl + 'Sade%20-%20Smooth%20Operator%20-%20Official%20-%201984.mp4', duration: 255 },
+      { url: archiveBaseUrl + 'videoplayback%20%284%29.mp4', duration: 200 }
     ];
 
-    const tvPlaylist = archivePlaylist.map(file => archiveBaseUrl + file);
+    const totalPlaylistDuration = playlist.reduce((sum, item) => sum + item.duration, 0);
+
     let radioPlaylist = [];
     let currentVideoIndex = 0;
     let currentRadioIndex = 0;
@@ -256,31 +270,40 @@
       }
     };
 
-    // Sincronización continua de señal (Calcula posición en tiempo real según el reloj global)
+    // Sincronización continua de señal (Transmisión 24/7 en vivo)
     function syncTvStream() {
-      if (tvPlaylist.length === 0) return;
-      
       const nowInSeconds = Math.floor(Date.now() / 1000);
-      // Asume una duración promedio acumulada para sincronización de transmisión en vivo
-      const loopIndex = Math.floor(nowInSeconds / 180) % tvPlaylist.length;
-      const offsetInVideo = nowInSeconds % 180;
-
-      currentVideoIndex = loopIndex;
-      const player = document.getElementById('tvPlayer');
-      player.src = tvPlaylist[currentVideoIndex];
+      let currentPositionInCycle = nowInSeconds % totalPlaylistDuration;
       
+      let accumTime = 0;
+      let targetIndex = 0;
+      let targetTimeOffset = 0;
+
+      for (let i = 0; i < playlist.length; i++) {
+        if (currentPositionInCycle >= accumTime && currentPositionInCycle < accumTime + playlist[i].duration) {
+          targetIndex = i;
+          targetTimeOffset = currentPositionInCycle - accumTime;
+          break;
+        }
+        accumTime += playlist[i].duration;
+      }
+
+      currentVideoIndex = targetIndex;
+      const player = document.getElementById('tvPlayer');
+      player.src = playlist[currentVideoIndex].url;
+
       player.addEventListener('loadedmetadata', () => {
-        if (offsetInVideo < player.duration) {
-          player.currentTime = offsetInVideo;
+        if (targetTimeOffset < player.duration) {
+          player.currentTime = targetTimeOffset;
         }
         player.play().catch(() => {});
       }, { once: true });
     }
 
     function playNextVideo() {
-      currentVideoIndex = (currentVideoIndex + 1) % tvPlaylist.length;
+      currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
       const player = document.getElementById('tvPlayer');
-      player.src = tvPlaylist[currentVideoIndex];
+      player.src = playlist[currentVideoIndex].url;
       player.play().catch(() => {});
     }
 
@@ -330,7 +353,6 @@
       const tvPlayer = document.getElementById('tvPlayer');
       const radioPlayer = document.getElementById('radioPlayer');
 
-      // Al finalizar un video, pasa automáticamente al siguiente
       tvPlayer.addEventListener('ended', playNextVideo);
 
       radioPlayer.addEventListener('timeupdate', () => {
@@ -406,10 +428,12 @@
     <section class="media-card">
       <h2 style="display: flex; justify-content: space-between; align-items: center;">
         Coate TV
-        <span class="status-badge">🔴 EN VIVO</span>
+        <span class="status-badge">🔴 EN VIVO 24/7</span>
       </h2>
       <div class="video-container">
-        <!-- Sin el atributo 'controls' y con pointer-events: none para ocultar la barra por completo -->
+        <!-- Logo / Marca de Agua del Canal -->
+        <img src="https://i.ibb.co/WrtpwB1/logo.png" alt="Logo Canal" class="channel-logo-overlay" />
+        
         <video id="tvPlayer" autoplay muted playsinline></video>
         <div class="video-overlay-btn">
           <button id="tvAudioBtn" class="btn-audio-toggle" onclick="toggleTvAudio()">🔇 Activar Sonido</button>
