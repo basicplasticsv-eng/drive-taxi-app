@@ -94,13 +94,15 @@
       overflow: hidden;
     }
 
-    .video-container iframe {
+    /* Video sin barra de navegación ni controles mouse */
+    .video-container video {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      border: none;
+      object-fit: contain;
+      pointer-events: none; /* Bloquea interacciones con el mouse sobre el video */
     }
 
     .audio-container {
@@ -138,6 +140,13 @@
 
     .btn-audio-toggle:hover {
       background-color: var(--accent-hover);
+    }
+
+    .video-overlay-btn {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      z-index: 10;
     }
 
     #adminView { grid-template-columns: 1fr; gap: 20px; }
@@ -189,7 +198,20 @@
     const SUPABASE_KEY = 'sb_publishable_5tq4snjI8q4AfrbBYgzrVw_UfoZw9vA';
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    const archiveBaseUrl = 'https://ia801509.us.archive.org/21/items/videoplayback-4_20260904/';
+    
+    // Lista de videos en la carpeta de Archive
+    const archivePlaylist = [
+      'Don%20Juan.mp4',
+      'Logo%20Branding%20Blue%20and%20White%20Modern%20Video.mp4',
+      'NUevo%20Sitio%20el%20Rosario.mp4',
+      'Sade%20-%20Smooth%20Operator%20-%20Official%20-%201984.mp4',
+      'videoplayback%20%284%29.mp4'
+    ];
+
+    const tvPlaylist = archivePlaylist.map(file => archiveBaseUrl + file);
     let radioPlaylist = [];
+    let currentVideoIndex = 0;
     let currentRadioIndex = 0;
     let isAdminAuthenticated = false;
 
@@ -207,6 +229,18 @@
       }
     };
 
+    window.toggleTvAudio = function() {
+      const video = document.getElementById('tvPlayer');
+      const btn = document.getElementById('tvAudioBtn');
+      if (video.muted) {
+        video.muted = false;
+        btn.textContent = '🔊 Silenciar';
+      } else {
+        video.muted = true;
+        btn.textContent = '🔇 Activar Sonido';
+      }
+    };
+
     window.toggleRadioAudio = function() {
       const audio = document.getElementById('radioPlayer');
       const btn = document.getElementById('radioAudioBtn');
@@ -221,6 +255,34 @@
         btn.textContent = '🔇 Activar Sonido';
       }
     };
+
+    // Sincronización continua de señal (Calcula posición en tiempo real según el reloj global)
+    function syncTvStream() {
+      if (tvPlaylist.length === 0) return;
+      
+      const nowInSeconds = Math.floor(Date.now() / 1000);
+      // Asume una duración promedio acumulada para sincronización de transmisión en vivo
+      const loopIndex = Math.floor(nowInSeconds / 180) % tvPlaylist.length;
+      const offsetInVideo = nowInSeconds % 180;
+
+      currentVideoIndex = loopIndex;
+      const player = document.getElementById('tvPlayer');
+      player.src = tvPlaylist[currentVideoIndex];
+      
+      player.addEventListener('loadedmetadata', () => {
+        if (offsetInVideo < player.duration) {
+          player.currentTime = offsetInVideo;
+        }
+        player.play().catch(() => {});
+      }, { once: true });
+    }
+
+    function playNextVideo() {
+      currentVideoIndex = (currentVideoIndex + 1) % tvPlaylist.length;
+      const player = document.getElementById('tvPlayer');
+      player.src = tvPlaylist[currentVideoIndex];
+      player.play().catch(() => {});
+    }
 
     async function fetchRadioPlaylist() {
       const { data } = await supabase.storage.from('audio').list();
@@ -262,9 +324,14 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      syncTvStream();
       fetchRadioPlaylist();
 
+      const tvPlayer = document.getElementById('tvPlayer');
       const radioPlayer = document.getElementById('radioPlayer');
+
+      // Al finalizar un video, pasa automáticamente al siguiente
+      tvPlayer.addEventListener('ended', playNextVideo);
 
       radioPlayer.addEventListener('timeupdate', () => {
         if (radioPlayer.currentTime > 0) {
@@ -339,18 +406,14 @@
     <section class="media-card">
       <h2 style="display: flex; justify-content: space-between; align-items: center;">
         Coate TV
-        <span class="status-badge">🔴 AL AIRE</span>
+        <span class="status-badge">🔴 EN VIVO</span>
       </h2>
       <div class="video-container">
-        <iframe 
-          src="https://archive.org/embed/videoplayback-4_20260904?autoplay=1" 
-          width="100%" 
-          height="100%" 
-          frameborder="0" 
-          webkitallowfullscreen="true" 
-          mozallowfullscreen="true" 
-          allowfullscreen>
-        </iframe>
+        <!-- Sin el atributo 'controls' y con pointer-events: none para ocultar la barra por completo -->
+        <video id="tvPlayer" autoplay muted playsinline></video>
+        <div class="video-overlay-btn">
+          <button id="tvAudioBtn" class="btn-audio-toggle" onclick="toggleTvAudio()">🔇 Activar Sonido</button>
+        </div>
       </div>
     </section>
 
@@ -358,7 +421,7 @@
     <section class="media-card">
       <h2 style="display: flex; justify-content: space-between; align-items: center;">
         Emisora de Radio
-        <span class="status-badge" style="background:var(--success);">🔴 AL AIRE</span>
+        <span class="status-badge" style="background:var(--success);">🔴 EN VIVO</span>
       </h2>
       <div class="audio-container">
         <audio id="radioPlayer" autoplay muted></audio>
